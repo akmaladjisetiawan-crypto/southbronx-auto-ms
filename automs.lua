@@ -105,7 +105,8 @@ local function pressE_Global()
     return false
 end
 
--- [[ BUTTONS ]]
+-- [[ BUTTONS & LOGIC ]]
+
 local QtyInput = Instance.new("TextBox", MainFrame)
 QtyInput.Size = UDim2.new(0.85, 0, 0, 30)
 QtyInput.Position = UDim2.new(0.075, 0, 0.45, 0)
@@ -168,37 +169,7 @@ BuyBtn.MouseButton1Click:Connect(function()
     end)
 end)
 
--- STATS UNFINISHED
-task.spawn(function()
-    while task.wait(2) do
-        pcall(function()
-            local w, s, g, fi = 0, 0, 0, 0
-            local inv = lp.Backpack:GetChildren()
-            if lp.Character then for _, v in pairs(lp.Character:GetChildren()) do if v:IsA("Tool") then table.insert(inv, v) end end end
-            
-            for _, item in pairs(inv) do
-                local n = item.Name:lower()
-                if n:find("water") then w = w + 1
-                elseif n:find("sugar") and not n:find("empty") then s = s + 1
-                elseif n:find("gelatin") then g = g + 1
-                elseif n:find("marshmallow") or n:find("ms") then
-                    if not n:find("unfinish") and not n:find("raw") then fi = fi + 1 end
-                end
-            end
-            
-            -- Menghitung jumlah paket yang siap dimasak
-            local combo = math.min(w, s, g)
-            
-            WaterCount.Text = "Water : "..w
-            SugarCount.Text = "Sugar : "..s
-            GelatinCount.Text = "Gelatin : "..g
-            UnfinishedMS.Text = "⏳ Ready to Cook : "..combo
-            FinishedMS.Text = "✅ Finished MS : "..fi
-        end)
-    end
-end)
-
--- [[ COOKING LOOP ]]
+-- [[ COOKING LOGIC ]]
 _G.AutoCook = false
 CookBtn.MouseButton1Click:Connect(function()
     _G.AutoCook = not _G.AutoCook
@@ -208,23 +179,76 @@ end)
 
 task.spawn(function()
     while true do
-        task.wait(0.5)
+        task.wait(0.1)
         if _G.AutoCook then
-            local function autoEquip(n)
-                local b = lp.Backpack
-                local c = lp.Character
-                if not b or not c then return false end
-                c.Humanoid:UnequipTools() task.wait(0.2)
-                for _, t in pairs(b:GetChildren()) do
-                    if t.Name:lower():find(n:lower()) then c.Humanoid:EquipTool(t) task.wait(0.4) return true end
+            pcall(function()
+                local char = lp.Character
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                
+                local function useIngredient(name, statusText)
+                    local tool = lp.Backpack:FindFirstChild(name) or (char:FindFirstChild(name))
+                    if tool then
+                        Status.Text = "Status: " .. statusText
+                        hum:EquipTool(tool)
+                        repeat
+                            pressE_Global()
+                            task.wait(0.5)
+                        until not char:FindFirstChild(name) or not _G.AutoCook
+                    end
                 end
-                return false
-            end
-            if autoEquip("Water") then Status.Text="Status: Water" pressE_Global() for i=21,1,-1 do if not _G.AutoCook then break end Status.Text="Water CD("..i.."s)" task.wait(1) end end
-            if _G.AutoCook and autoEquip("Sugar") then Status.Text = "Status: Sugar" pressE_Global() task.wait(3) end
-            if _G.AutoCook and autoEquip("Gelatin") then Status.Text = "Status: Gelatin" pressE_Global() task.wait(3) end
-            if _G.AutoCook then for i=46,1,-1 do if not _G.AutoCook then break end Status.Text="Cooking("..i.."s)" task.wait(1) end end
-            if _G.AutoCook and autoEquip("Empty") then Status.Text = "Status: Collecting" pressE_Global() task.wait(5) end
+
+                -- Tahap Masak
+                useIngredient("Water", "Adding Water")
+                if _G.AutoCook then task.wait(20) end 
+                
+                useIngredient("Sugar", "Adding Sugar")
+                useIngredient("Gelatin", "Adding Gelatin")
+                
+                if _G.AutoCook then
+                    for i = 45, 1, -1 do
+                        if not _G.AutoCook then break end
+                        Status.Text = "Cooking: " .. i .. "s"
+                        task.wait(1)
+                    end
+                end
+                
+                -- Ambil Marshmallow
+                local empty = lp.Backpack:FindFirstChild("Empty") or char:FindFirstChild("Empty")
+                if empty then
+                    Status.Text = "Status: Collecting"
+                    hum:EquipTool(empty)
+                    repeat
+                        pressE_Global()
+                        task.wait(0.5)
+                    until not char:FindFirstChild("Empty") or not _G.AutoCook
+                end
+            end)
         end
+    end
+end)
+
+-- [[ STATS LOOP ]]
+task.spawn(function()
+    while task.wait(2) do
+        pcall(function()
+            local w, s, g, fi = 0, 0, 0, 0
+            local inv = lp.Backpack:GetChildren()
+            if lp.Character then for _, v in pairs(lp.Character:GetChildren()) do if v:IsA("Tool") then table.insert(inv, v) end end end
+            for _, item in pairs(inv) do
+                local n = item.Name:lower()
+                if n:find("water") then w = w + 1
+                elseif n:find("sugar") and not n:find("empty") then s = s + 1
+                elseif n:find("gelatin") then g = g + 1
+                elseif n:find("marshmallow") or n:find("ms") then
+                    if not n:find("unfinish") and not n:find("raw") then fi = fi + 1 end
+                end
+            end
+            local combo = math.min(w, s, g)
+            WaterCount.Text = "Water : "..w
+            SugarCount.Text = "Sugar : "..s
+            GelatinCount.Text = "Gelatin : "..g
+            UnfinishedMS.Text = "⏳ Ready to Cook : "..combo
+            FinishedMS.Text = "✅ Finished MS : "..fi
+        end)
     end
 end)
