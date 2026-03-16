@@ -1,4 +1,4 @@
--- AUTOMS BY FLUU - SOUTH BRONX
+-- AUTOMS BY FLUU - SOUTH BRONX (PRECISE ITEM DETECTION)
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local UICorner = Instance.new("UICorner")
@@ -31,7 +31,7 @@ UIStroke.Parent = MainFrame
 UIStroke.Color = Color3.fromRGB(0, 255, 150)
 UIStroke.Thickness = 1.5
 
--- Judul Baru: AUTOMS BY FLUU
+-- Judul
 Title.Parent = MainFrame
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Text = "AUTOMS BY FLUU"
@@ -64,34 +64,13 @@ local function createStatLabel(name, pos, color)
     return lbl
 end
 
--- Dashboard
 WaterCount = createStatLabel("Water Stock", UDim2.new(0, 10, 0, 5))
 SugarCount = createStatLabel("Sugar Stock", UDim2.new(0, 10, 0, 25))
 GelatinCount = createStatLabel("Gelatin Stock", UDim2.new(0, 10, 0, 45))
 UnfinishedMS = createStatLabel("⏳ Unfinished MS", UDim2.new(0, 10, 0, 65), Color3.fromRGB(255, 165, 0))
 FinishedMS = createStatLabel("✅ Finished MS", UDim2.new(0, 10, 0, 85), Color3.fromRGB(0, 255, 150))
 
--- Status Kerja
-StatusLabel.Parent = MainFrame
-StatusLabel.Position = UDim2.new(0, 0, 0.9, 0)
-StatusLabel.Size = UDim2.new(1, 0, 0, 20)
-StatusLabel.Text = "System: Idle"
-StatusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Font = Enum.Font.Gotham
-StatusLabel.TextSize = 11
-
--- Button
-ToggleBtn.Parent = MainFrame
-ToggleBtn.Position = UDim2.new(0.1, 0, 0.65, 0)
-ToggleBtn.Size = UDim2.new(0.8, 0, 0, 40)
-ToggleBtn.Text = "START AFK"
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
-ToggleBtn.Font = Enum.Font.GothamBold
-ToggleBtn.TextSize = 14
-ButtonCorner.Parent = ToggleBtn
-
--- LOGIK: Scan Inventory
+-- LOGIK: Scan Inventory per Item
 local function updateDashboard()
     local p = game.Players.LocalPlayer
     if not p or not p:FindFirstChild("Backpack") then return end
@@ -111,7 +90,8 @@ local function updateDashboard()
         elseif n:find("sugar") then s = s + 1
         elseif n:find("gelatin") then g = g + 1
         elseif n:find("marshmallow") then
-            if n:find("unfinish") or n:find("process") or n:find("not ready") then
+            -- Deteksi lebih teliti: jika ada kata kunci belum jadi
+            if n:find("unfinish") or n:find("process") or n:find("not") or n:find("raw") or n:find("cook") then
                 un = un + 1
             else
                 fi = fi + 1
@@ -129,16 +109,12 @@ end
 spawn(function()
     while true do
         updateDashboard()
-        task.wait(2)
+        task.wait(1) -- Cek tiap 1 detik biar akurat
     end
 end)
 
--- Anti-AFK
-game:GetService("Players").LocalPlayer.Idled:Connect(function()
-    game:GetService("VirtualUser"):CaptureController()
-    game:GetService("VirtualUser"):ClickButton2(Vector2.new())
-end)
-
+-- Main Script Logic (Tetap Sama)
+_G.AutoCook = false
 function pressE()
     for _, v in pairs(game.Workspace:GetDescendants()) do
         if v:IsA("ProximityPrompt") then
@@ -156,20 +132,30 @@ function pressE()
     return false
 end
 
+ToggleBtn.Parent = MainFrame
+ToggleBtn.Position = UDim2.new(0.1, 0, 0.65, 0)
+ToggleBtn.Size = UDim2.new(0.8, 0, 0, 40)
+ToggleBtn.Text = "START AFK"
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 14
+ButtonCorner.Parent = ToggleBtn
+
 ToggleBtn.MouseButton1Click:Connect(function()
     _G.AutoCook = not _G.AutoCook
     ToggleBtn.Text = _G.AutoCook and "STOP AFK" or "START AFK"
     ToggleBtn.BackgroundColor3 = _G.AutoCook and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(0, 255, 150)
 end)
 
--- RShift Toggle
-game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
-    if not gp and input.KeyCode == Enum.KeyCode.RightShift then
-        MainFrame.Visible = not MainFrame.Visible
-    end
-end)
+StatusLabel.Parent = MainFrame
+StatusLabel.Position = UDim2.new(0, 0, 0.9, 0)
+StatusLabel.Size = UDim2.new(1, 0, 0, 20)
+StatusLabel.Text = "System: Idle"
+StatusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.TextSize = 11
 
--- Main Loop (FAST COLLECT)
 spawn(function()
     while true do
         task.wait(0.5)
