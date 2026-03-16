@@ -70,45 +70,50 @@ GelatinCount = createStatLabel("Gelatin Stock", UDim2.new(0, 10, 0, 45))
 UnfinishedMS = createStatLabel("⏳ Unfinished MS", UDim2.new(0, 10, 0, 65), Color3.fromRGB(255, 165, 0))
 FinishedMS = createStatLabel("✅ Finished MS", UDim2.new(0, 10, 0, 85), Color3.fromRGB(0, 255, 150))
 
--- Fungsi Mencari & Memegang Item
-local function equipItem(itemName)
+-- FUNGSI DETEKSI & EQUIP SMART
+local function equipByKeyword(keyword)
     local p = game.Players.LocalPlayer
-    local tool = p.Backpack:FindFirstChild(itemName)
-    if tool then
-        p.Character.Humanoid:EquipTool(tool)
+    local char = p.Character
+    if not char then return false end
+    local hum = char:FindFirstChild("Humanoid")
+    
+    -- Cari di Backpack
+    for _, tool in pairs(p.Backpack:GetChildren()) do
+        if tool:IsA("Tool") and tool.Name:lower():find(keyword:lower()) then
+            hum:EquipTool(tool)
+            task.wait(0.2)
+            return true
+        end
+    end
+    
+    -- Cek apakah sudah di tangan
+    local current = char:FindFirstChildOfClass("Tool")
+    if current and current.Name:lower():find(keyword:lower()) then
         return true
     end
+    
     return false
 end
 
--- LOGIK: Update Dashboard
+-- Update Dashboard
 local function updateDashboard()
     local p = game.Players.LocalPlayer
     if not p or not p:FindFirstChild("Backpack") then return end
-    
     local allItems = {}
     for _, v in pairs(p.Backpack:GetChildren()) do table.insert(allItems, v.Name) end
     if p.Character then
-        for _, v in pairs(p.Character:GetChildren()) do
-            if v:IsA("Tool") then table.insert(allItems, v.Name) end
-        end
+        for _, v in pairs(p.Character:GetChildren()) do if v:IsA("Tool") then table.insert(allItems, v.Name) end end
     end
-
     local w, s, g, un, fi = 0, 0, 0, 0, 0
     for _, name in pairs(allItems) do
         local n = name:lower()
         if n:find("water") then w = w + 1
-        elseif n:find("sugar") and n:find("block") and not n:find("empty") then s = s + 1
+        elseif n:find("sugar") and not n:find("empty") then s = s + 1
         elseif n:find("gelatin") then g = g + 1
         elseif n:find("marshmallow") then
-            if n:find("unfinish") or n:find("process") or n:find("not") or n:find("raw") or n:find("cook") then
-                un = un + 1
-            else
-                fi = fi + 1
-            end
+            if n:find("unfinish") or n:find("cook") or n:find("raw") then un = un + 1 else fi = fi + 1 end
         end
     end
-    
     WaterCount.Text = "Water Stock : " .. w
     SugarCount.Text = "Sugar Stock : " .. s
     GelatinCount.Text = "Gelatin Stock : " .. g
@@ -116,12 +121,7 @@ local function updateDashboard()
     FinishedMS.Text = "✅ Finished MS : " .. fi
 end
 
-spawn(function()
-    while true do
-        updateDashboard()
-        task.wait(1.5)
-    end
-end)
+spawn(function() while true do updateDashboard() task.wait(1) end end)
 
 _G.AutoCook = false
 function pressE()
@@ -130,10 +130,7 @@ function pressE()
             local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
                 local dist = (hrp.Position - v.Parent.Position).Magnitude
-                if dist < 8 then 
-                    fireproximityprompt(v)
-                    return true
-                end
+                if dist < 8 then fireproximityprompt(v) return true end
             end
         end
     end
@@ -164,45 +161,57 @@ StatusLabel.BackgroundTransparency = 1
 StatusLabel.Font = Enum.Font.Gotham
 StatusLabel.TextSize = 11
 
--- MAIN LOOP: Alur Fix
+-- MAIN LOOP: DETEKSI OTOMATIS
 spawn(function()
     while true do
         task.wait(0.5)
         if _G.AutoCook then
-            -- 1. MASUKKAN AIR
-            StatusLabel.Text = "System: Adding Water..."
-            if pressE() then 
-                for i = 10, 1, -1 do
-                    if not _G.AutoCook then break end
-                    StatusLabel.Text = "System: Water CD ("..i.."s)"
-                    task.wait(1)
+            -- 1. Deteksi & Isi Air
+            StatusLabel.Text = "System: Finding Water..."
+            if equipByKeyword("Water") then
+                task.wait(0.3)
+                if pressE() then
+                    for i = 10, 1, -1 do
+                        if not _G.AutoCook then break end
+                        StatusLabel.Text = "System: Water CD ("..i.."s)"
+                        task.wait(1)
+                    end
                 end
             end
-            
+
             if not _G.AutoCook then continue end
-            
-            -- 2. MIXING BAHAN (Gula & Gelatin)
-            StatusLabel.Text = "System: Mixing Ingredients..."
-            pressE() -- Gula
-            task.wait(1)
-            pressE() -- Gelatin
-            
-            -- 3. PROSES MASAK (46 Detik)
+
+            -- 2. Deteksi & Isi Gula
+            StatusLabel.Text = "System: Finding Sugar..."
+            if equipByKeyword("Sugar") then
+                task.wait(0.3)
+                pressE()
+                task.wait(1)
+            end
+
+            -- 3. Deteksi & Isi Gelatin
+            StatusLabel.Text = "System: Finding Gelatin..."
+            if equipByKeyword("Gelatin") then
+                task.wait(0.3)
+                pressE()
+            end
+
+            -- 4. Tunggu Masak
             for i = 46, 1, -1 do
                 if not _G.AutoCook then break end
                 StatusLabel.Text = "System: Cooking ("..i.."s)"
                 task.wait(1)
             end
-            
+
             if not _G.AutoCook then continue end
 
-            -- 4. AMBIL HASIL (Pegang Empty Bag Baru Tekan E)
-            StatusLabel.Text = "System: Equipping Empty Bag..."
-            equipItem("Empty Bag") 
-            task.wait(0.8)
-            StatusLabel.Text = "System: Collecting MS..."
-            pressE() -- Ambil Marshmallow matang
-            task.wait(0.5)
+            -- 5. Deteksi Empty Bag & Ambil
+            StatusLabel.Text = "System: Finding Empty Bag..."
+            if equipByKeyword("Empty") then
+                task.wait(0.5)
+                StatusLabel.Text = "System: Collecting MS..."
+                pressE()
+            end
         else
             StatusLabel.Text = "System: Idle"
         end
