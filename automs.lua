@@ -1,4 +1,4 @@
--- [[ AUTOMS BY FLUU - FIXED VERSION ]]
+-- AUTOMS BY FLUU
 local lp = game.Players.LocalPlayer
 local VIM = game:GetService("VirtualInputManager")
 
@@ -59,7 +59,7 @@ local GelatinCount = createStatLabel("Gelatin", UDim2.new(0, 10, 0, 41))
 local UnfinishedMS = createStatLabel("⏳ Ready to Cook", UDim2.new(0, 10, 0, 62), Color3.fromRGB(255, 165, 0))
 local FinishedMS = createStatLabel("✅ Finished MS", UDim2.new(0, 10, 0, 80), Color3.fromRGB(0, 255, 150))
 
--- [[ CORE FUNCTIONS ]]
+-- [[ IMPROVED CORE FUNCTIONS ]]
 
 local function clickText(txt)
     local pGui = lp:WaitForChild("PlayerGui")
@@ -85,7 +85,7 @@ local function pressE_Global()
     if not char or not char:FindFirstChild("HumanoidRootPart") then return false end
     local root = char.HumanoidRootPart
     local closestPrompt = nil
-    local shortestDist = 20 -- Jarak deteksi ditingkatkan sedikit
+    local shortestDist = 25
 
     for _, v in pairs(workspace:GetDescendants()) do
         if v:IsA("ProximityPrompt") then
@@ -106,29 +106,30 @@ local function pressE_Global()
     return false
 end
 
-local function autoEquip(n)
+-- Perbaikan fungsi equip agar tidak spam unequip
+local function safeEquip(itemName)
     local b = lp.Backpack
     local c = lp.Character
     if not b or not c then return false end
-    
-    -- Cek jika sudah pegang item yang benar agar tidak spam unequip
+
+    -- Cek jika sudah pegang
     local current = c:FindFirstChildWhichIsA("Tool")
-    if current and string.find(current.Name:lower(), n:lower()) then
+    if current and string.find(current.Name:lower(), itemName:lower()) then
         return true
     end
 
     -- Cari di backpack
     for _, t in pairs(b:GetChildren()) do
-        if t:IsA("Tool") and string.find(t.Name:lower(), n:lower()) then
+        if t:IsA("Tool") and string.find(t.Name:lower(), itemName:lower()) then
             c.Humanoid:EquipTool(t)
-            task.wait(0.5) -- Jeda agar animasi selesai
+            task.wait(0.8)
             return true
         end
     end
     return false
 end
 
--- [[ BUTTONS ]]
+-- [[ UI INTERACTION ]]
 local QtyInput = Instance.new("TextBox", MainFrame)
 QtyInput.Size = UDim2.new(0.85, 0, 0, 30)
 QtyInput.Position = UDim2.new(0.075, 0, 0.45, 0)
@@ -165,7 +166,6 @@ Status.BackgroundTransparency = 1
 Status.Font = Enum.Font.Gotham
 Status.TextSize = 11
 
--- [[ EVENTS ]]
 BuyBtn.MouseButton1Click:Connect(function()
     local amt = tonumber(QtyInput.Text) or 10
     task.spawn(function()
@@ -199,7 +199,6 @@ task.spawn(function()
             local w, s, g, fi = 0, 0, 0, 0
             local inv = lp.Backpack:GetChildren()
             if lp.Character then for _, v in pairs(lp.Character:GetChildren()) do if v:IsA("Tool") then table.insert(inv, v) end end end
-            
             for _, item in pairs(inv) do
                 local n = item.Name:lower()
                 if n:find("water") then w = w + 1
@@ -209,7 +208,6 @@ task.spawn(function()
                     if not n:find("unfinish") and not n:find("raw") then fi = fi + 1 end
                 end
             end
-            
             local combo = math.min(w, s, g)
             WaterCount.Text = "Water : "..w
             SugarCount.Text = "Sugar : "..s
@@ -220,7 +218,7 @@ task.spawn(function()
     end
 end)
 
--- [[ COOKING LOOP ]]
+-- [[ FIXED COOKING LOOP ]]
 _G.AutoCook = false
 CookBtn.MouseButton1Click:Connect(function()
     _G.AutoCook = not _G.AutoCook
@@ -230,12 +228,12 @@ end)
 
 task.spawn(function()
     while true do
-        task.wait(0.5)
+        task.wait(1)
         if _G.AutoCook then
             -- 1. WATER
-            if autoEquip("Water") then 
-                Status.Text = "Status: Putting Water" 
-                task.wait(0.5)
+            if safeEquip("Water") then 
+                Status.Text = "Status: Inputting Water" 
+                task.wait(0.2)
                 pressE_Global() 
                 for i=21,1,-1 do 
                     if not _G.AutoCook then break end 
@@ -245,19 +243,19 @@ task.spawn(function()
             end
             
             -- 2. SUGAR
-            if _G.AutoCook and autoEquip("Sugar") then 
-                Status.Text = "Status: Putting Sugar" 
-                task.wait(0.5)
+            if _G.AutoCook and safeEquip("Sugar") then 
+                Status.Text = "Status: Inputting Sugar" 
+                task.wait(0.2)
                 pressE_Global() 
-                task.wait(3) 
+                task.wait(2) 
             end
             
             -- 3. GELATIN
-            if _G.AutoCook and autoEquip("Gelatin") then 
-                Status.Text = "Status: Putting Gelatin" 
-                task.wait(0.5)
+            if _G.AutoCook and safeEquip("Gelatin") then 
+                Status.Text = "Status: Inputting Gelatin" 
+                task.wait(0.2)
                 pressE_Global() 
-                task.wait(3) 
+                task.wait(2) 
             end
             
             -- 4. WAIT COOKING
@@ -269,12 +267,12 @@ task.spawn(function()
                 end 
             end
             
-            -- 5. COLLECT WITH EMPTY (Sugar Empty/Jar)
-            if _G.AutoCook and autoEquip("Empty") then 
-                Status.Text = "Status: Collecting..." 
-                task.wait(0.5)
+            -- 5. COLLECT WITH EMPTY
+            if _G.AutoCook and safeEquip("Empty") then 
+                Status.Text = "Status: Collecting MS..." 
+                task.wait(0.2)
                 pressE_Global() 
-                task.wait(5) 
+                task.wait(4) 
             end
         end
     end
