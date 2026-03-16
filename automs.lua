@@ -2,7 +2,7 @@
 local lp = game.Players.LocalPlayer
 local VIM = game:GetService("VirtualInputManager")
 
--- Cleanup UI
+-- Cleanup UI Lama
 local oldUI = game:GetService("CoreGui"):FindFirstChild("AutomsByFluuFinal") or lp.PlayerGui:FindFirstChild("AutomsByFluuFinal")
 if oldUI then oldUI:Destroy() end
 
@@ -12,7 +12,7 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 local success, _ = pcall(function() ScreenGui.Parent = game:GetService("CoreGui") end)
 if not success then ScreenGui.Parent = lp:WaitForChild("PlayerGui") end
 
--- [[ UI DESIGN ]]
+-- UI DESIGN
 local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.Position = UDim2.new(0.5, -115, 0.5, -190)
@@ -109,7 +109,7 @@ local function clickText(txt)
         if v:IsA("TextButton") and v.Visible and string.find(string.lower(v.Text), string.lower(txt)) then
             local pos = v.AbsolutePosition
             local size = v.AbsoluteSize
-            -- Offset 58 khusus Laptop
+            -- Offsett
             VIM:SendMouseButtonEvent(pos.X + size.X/2, pos.Y + size.Y/2 + 58, 0, true, game, 1)
             task.wait(0.05)
             VIM:SendMouseButtonEvent(pos.X + size.X/2, pos.Y + size.Y/2 + 58, 0, false, game, 1)
@@ -122,33 +122,21 @@ end
 local function pressE(targetName)
     local char = lp.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return false end
-    
     for _, v in pairs(workspace:GetDescendants()) do
         if v:IsA("ProximityPrompt") then
             local parent = v.Parent
             local match = false
-            
-            -- Lamont (dealer)
             if targetName then
                 local n = parent.Name:lower()
                 local t = v.ActionText:lower()
-                if n:find(targetName:lower()) or n:find("dealer") or t:find("talk") or t:find("interact") then
-                    match = true
-                end
+                if n:find(targetName:lower()) or n:find("dealer") or t:find("talk") or t:find("interact") then match = true end
             else
-                -- Untuk masak (mencari Kompor)
-                if v.ActionText:lower():find("cook") or parent.Name:lower():find("stove") then
-                    match = true
-                end
+                if v.ActionText:lower():find("cook") or parent.Name:lower():find("stove") then match = true end
             end
-
             if match then
                 local targetPos = (parent:IsA("Model") and parent:GetModelCFrame().Position) or parent.Position
                 local dist = (char.HumanoidRootPart.Position - targetPos).Magnitude
-                if dist < 15 then 
-                    fireproximityprompt(v) 
-                    return true 
-                end
+                if dist < 15 then fireproximityprompt(v) return true end
             end
         end
     end
@@ -184,21 +172,26 @@ task.spawn(function()
     end
 end)
 
--- BUY Logic
+-- AUTO BUY Logic
 BuyBtn.MouseButton1Click:Connect(function()
     local amt = tonumber(QtyInput.Text) or 10
     task.spawn(function()
-        Status.Text = "Status: Interacting with Dealer..."
-        -- Mencoba mencari Lamont atau Dealer di sekitar
-        if pressE("Lamont") then
-            task.wait(1.5)
+        Status.Text = "Status: Talking to Dealer..."
+        if pressE("Lamont") or pressE("Dealer") then
+            -- TUNGGU 5 DETIK SESUAI PERMINTAAN
+            for i = 5, 1, -1 do
+                Status.Text = "Status: Waiting Dialog ("..i.."s)"
+                task.wait(1)
+            end
+            
+            Status.Text = "Status: Clicking Dialog..."
             if clickText("yea") then
                 task.wait(1.5)
                 local list = {"Water", "Sugar Block Bag", "Gelatin"}
                 for _, item in pairs(list) do
                     Status.Text = "Status: Buying "..item
                     for i = 1, amt do
-                        clickText(item)
+                        if not clickText(item) then break end
                         task.wait(0.35)
                     end
                 end
@@ -207,7 +200,7 @@ BuyBtn.MouseButton1Click:Connect(function()
                 Status.Text = "Status: Dialog Not Found"
             end
         else
-            Status.Text = "Status: Lamont Not Found"
+            Status.Text = "Status: Dealer Not Found"
         end
         task.wait(2) Status.Text = "Status: Idle"
     end)
