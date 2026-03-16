@@ -128,7 +128,7 @@ local function pressE(targetName)
             local parent = v.Parent
             local match = false
             
-            -- Lamont
+            -- Lamont (dealer)
             if targetName then
                 local n = parent.Name:lower()
                 local t = v.ActionText:lower()
