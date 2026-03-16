@@ -1,4 +1,4 @@
--- MODERN GLOW SOUTH BRONX (MIXED STYLE + FAST)
+-- AUTOMS BY FLUU - SOUTH BRONX
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local UICorner = Instance.new("UICorner")
@@ -12,7 +12,7 @@ local StatusLabel = Instance.new("TextLabel")
 local WaterCount, SugarCount, GelatinCount, UnfinishedMS, FinishedMS
 
 -- Setup UI Utama
-ScreenGui.Name = "MarshmallowHubV8"
+ScreenGui.Name = "AutomsByFluu"
 ScreenGui.Parent = game:GetService("CoreGui")
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
@@ -31,10 +31,10 @@ UIStroke.Parent = MainFrame
 UIStroke.Color = Color3.fromRGB(0, 255, 150)
 UIStroke.Thickness = 1.5
 
--- Judul
+-- Judul Baru: AUTOMS BY FLUU
 Title.Parent = MainFrame
 Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "MARSHMALLOW FACTORY"
+Title.Text = "AUTOMS BY FLUU"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -64,7 +64,7 @@ local function createStatLabel(name, pos, color)
     return lbl
 end
 
--- Dashboard: Bahan (Tanpa Emoji) & Marshmallow (Pakai Emoji)
+-- Dashboard
 WaterCount = createStatLabel("Water Stock", UDim2.new(0, 10, 0, 5))
 SugarCount = createStatLabel("Sugar Stock", UDim2.new(0, 10, 0, 25))
 GelatinCount = createStatLabel("Gelatin Stock", UDim2.new(0, 10, 0, 45))
