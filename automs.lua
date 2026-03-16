@@ -1,4 +1,4 @@
--- AUTOMS BY FLUU - SOUTH BRONX MARSHMALLOW
+-- MODERN GLOW SOUTH BRONX (MIXED STYLE + FAST)
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local UICorner = Instance.new("UICorner")
@@ -12,9 +12,8 @@ local StatusLabel = Instance.new("TextLabel")
 local WaterCount, SugarCount, GelatinCount, UnfinishedMS, FinishedMS
 
 -- Setup UI Utama
-ScreenGui.Name = "AutomsByFluuHub"
-local parent = game:GetService("CoreGui") or game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
-ScreenGui.Parent = parent
+ScreenGui.Name = "MarshmallowHubV8"
+ScreenGui.Parent = game:GetService("CoreGui")
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 MainFrame.Name = "MainFrame"
@@ -35,7 +34,7 @@ UIStroke.Thickness = 1.5
 -- Judul
 Title.Parent = MainFrame
 Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "AUTOMS BY FLUU"
+Title.Text = "MARSHMALLOW FACTORY"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -47,7 +46,9 @@ StatsFrame.Parent = MainFrame
 StatsFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 StatsFrame.Position = UDim2.new(0.05, 0, 0.18, 0)
 StatsFrame.Size = UDim2.new(0.9, 0, 0, 110)
-Instance.new("UICorner", StatsFrame).CornerRadius = UDim.new(0, 8)
+local StatsCorner = Instance.new("UICorner")
+StatsCorner.CornerRadius = UDim.new(0, 8)
+StatsCorner.Parent = StatsFrame
 
 local function createStatLabel(name, pos, color)
     local lbl = Instance.new("TextLabel")
@@ -63,21 +64,24 @@ local function createStatLabel(name, pos, color)
     return lbl
 end
 
+-- Dashboard: Bahan (Tanpa Emoji) & Marshmallow (Pakai Emoji)
 WaterCount = createStatLabel("Water Stock", UDim2.new(0, 10, 0, 5))
 SugarCount = createStatLabel("Sugar Stock", UDim2.new(0, 10, 0, 25))
 GelatinCount = createStatLabel("Gelatin Stock", UDim2.new(0, 10, 0, 45))
 UnfinishedMS = createStatLabel("⏳ Unfinished MS", UDim2.new(0, 10, 0, 65), Color3.fromRGB(255, 165, 0))
 FinishedMS = createStatLabel("✅ Finished MS", UDim2.new(0, 10, 0, 85), Color3.fromRGB(0, 255, 150))
 
+-- Status Kerja
 StatusLabel.Parent = MainFrame
 StatusLabel.Position = UDim2.new(0, 0, 0.9, 0)
 StatusLabel.Size = UDim2.new(1, 0, 0, 20)
-StatusLabel.Text = "Status: Idle"
+StatusLabel.Text = "System: Idle"
 StatusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
 StatusLabel.BackgroundTransparency = 1
 StatusLabel.Font = Enum.Font.Gotham
 StatusLabel.TextSize = 11
 
+-- Button
 ToggleBtn.Parent = MainFrame
 ToggleBtn.Position = UDim2.new(0.1, 0, 0.65, 0)
 ToggleBtn.Size = UDim2.new(0.8, 0, 0, 40)
@@ -87,22 +91,34 @@ ToggleBtn.Font = Enum.Font.GothamBold
 ToggleBtn.TextSize = 14
 ButtonCorner.Parent = ToggleBtn
 
--- Fungsi Scan Inventory
+-- LOGIK: Scan Inventory
 local function updateDashboard()
     local p = game.Players.LocalPlayer
     if not p or not p:FindFirstChild("Backpack") then return end
-    local items = p.Backpack:GetChildren()
-    if p.Character then for _, v in pairs(p.Character:GetChildren()) do if v:IsA("Tool") then table.insert(items, v) end end end
-    local w, s, g, un, fi = 0, 0, 0, 0, 0
-    for _, item in pairs(items) do
-        local n = item.Name:lower()
-        if n:find("water") then w = w + 1
-        elseif n:find("sugar") and not n:find("empty") then s = s + 1
-        elseif n:find("gelatin") then g = g + 1
-        elseif n:find("marshmallow") then
-            if n:find("unfinish") or n:find("raw") then un = un + 1 else fi = fi + 1 end
+    
+    local allItems = {}
+    for _, v in pairs(p.Backpack:GetChildren()) do table.insert(allItems, v.Name) end
+    if p.Character then
+        for _, v in pairs(p.Character:GetChildren()) do
+            if v:IsA("Tool") then table.insert(allItems, v.Name) end
         end
     end
+
+    local w, s, g, un, fi = 0, 0, 0, 0, 0
+    for _, name in pairs(allItems) do
+        local n = name:lower()
+        if n:find("water") then w = w + 1
+        elseif n:find("sugar") then s = s + 1
+        elseif n:find("gelatin") then g = g + 1
+        elseif n:find("marshmallow") then
+            if n:find("unfinish") or n:find("process") or n:find("not ready") then
+                un = un + 1
+            else
+                fi = fi + 1
+            end
+        end
+    end
+    
     WaterCount.Text = "Water Stock : " .. w
     SugarCount.Text = "Sugar Stock : " .. s
     GelatinCount.Text = "Gelatin Stock : " .. g
@@ -110,7 +126,12 @@ local function updateDashboard()
     FinishedMS.Text = "✅ Finished MS : " .. fi
 end
 
-spawn(function() while true do updateDashboard() task.wait(2) end end)
+spawn(function()
+    while true do
+        updateDashboard()
+        task.wait(2)
+    end
+end)
 
 -- Anti-AFK
 game:GetService("Players").LocalPlayer.Idled:Connect(function()
@@ -118,18 +139,15 @@ game:GetService("Players").LocalPlayer.Idled:Connect(function()
     game:GetService("VirtualUser"):ClickButton2(Vector2.new())
 end)
 
--- LOGIKA PENCET E (DIAMBIL DARI SCRIPT REXXYMAYOR YANG BISA)
 function pressE()
     for _, v in pairs(game.Workspace:GetDescendants()) do
         if v:IsA("ProximityPrompt") then
             local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
                 local dist = (hrp.Position - v.Parent.Position).Magnitude
-                if dist < 12 then -- Jarak sedikit diperjauh agar lebih peka
-                    v:InputHoldBegin()
-                    task.wait(0.2) -- Delay simulasi hold
+                if dist < 8 then 
+                    task.wait(0.1)
                     fireproximityprompt(v)
-                    v:InputHoldEnd()
                     return true
                 end
             end
@@ -138,83 +156,44 @@ function pressE()
     return false
 end
 
--- Fungsi Equip
-function autoEquip(name)
-    local p = game.Players.LocalPlayer
-    local bp = p:FindFirstChild("Backpack")
-    local char = p.Character
-    if not bp or not char then return false end
-    local held = char:FindFirstChildOfClass("Tool")
-    if held and string.find(string.lower(held.Name), string.lower(name)) then return true end
-    for _, tool in pairs(bp:GetChildren()) do
-        if string.find(string.lower(tool.Name), string.lower(name)) then
-            char.Humanoid:EquipTool(tool)
-            task.wait(0.6) -- Kasih waktu karakter buat pegang item
-            return true
-        end
-    end
-    return false
-end
-
-_G.AutoCook = false
 ToggleBtn.MouseButton1Click:Connect(function()
     _G.AutoCook = not _G.AutoCook
     ToggleBtn.Text = _G.AutoCook and "STOP AFK" or "START AFK"
     ToggleBtn.BackgroundColor3 = _G.AutoCook and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(0, 255, 150)
 end)
 
--- Main Loop (URUTAN RIGID)
+-- RShift Toggle
+game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
+    if not gp and input.KeyCode == Enum.KeyCode.RightShift then
+        MainFrame.Visible = not MainFrame.Visible
+    end
+end)
+
+-- Main Loop (FAST COLLECT)
 spawn(function()
     while true do
-        task.wait(1)
+        task.wait(0.5)
         if _G.AutoCook then
-            -- 1. WATER & CD 20S
-            StatusLabel.Text = "Status: Adding Water..."
-            if autoEquip("Water") then
-                task.wait(0.5)
-                if pressE() then
-                    for i = 20, 1, -1 do
-                        if not _G.AutoCook then break end
-                        StatusLabel.Text = "Status: Water CD ("..i.."s)"
-                        task.wait(1)
-                    end
-                end
-            end
+            StatusLabel.Text = "System: Adding Water..."
+            if pressE() then task.wait(10.1) end
             if not _G.AutoCook then continue end
-
-            -- 2. SUGAR
-            StatusLabel.Text = "Status: Adding Sugar..."
-            if autoEquip("Sugar") then
-                task.wait(0.5)
-                pressE()
-                task.wait(2)
-            end
-
-            -- 3. GELATIN
-            StatusLabel.Text = "Status: Adding Gelatin..."
-            if autoEquip("Gelatin") then
-                task.wait(0.5)
-                pressE()
-                task.wait(2)
-            end
-
-            -- 4. COOKING 45S
+            
+            StatusLabel.Text = "System: Mixing Ingredients..."
+            pressE() task.wait(1.2)
+            pressE()
+            
             for i = 45, 1, -1 do
                 if not _G.AutoCook then break end
-                StatusLabel.Text = "Status: Cooking ("..i.."s)"
+                StatusLabel.Text = "System: Cooking ("..i.."s)"
                 task.wait(1)
             end
             if not _G.AutoCook then continue end
 
-            -- 5. COLLECT
-            StatusLabel.Text = "Status: Collecting Result..."
-            if autoEquip("Empty") then
-                task.wait(0.8)
-                pressE()
-                task.wait(4)
-            end
+            StatusLabel.Text = "System: Collecting MS..."
+            pressE()
+            task.wait(0.8)
         else
-            StatusLabel.Text = "Status: Idle"
+            StatusLabel.Text = "System: Idle"
         end
     end
 end)
