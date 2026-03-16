@@ -1,16 +1,20 @@
--- AUTOMS BY FLUU - SOUTH BRONX
+-- AUTOMS BY FLUU
 local lp = game.Players.LocalPlayer
 local VIM = game:GetService("VirtualInputManager")
 
--- Cleanup UI
-local oldUI = game:GetService("CoreGui"):FindFirstChild("AutomsByFluuFinal") or lp.PlayerGui:FindFirstChild("AutomsByFluuFinal")
-if oldUI then oldUI:Destroy() end
+-- CLEANUP UI (PASTI MUNCUL)
+local uiName = "AutomsByFluuFinal"
+pcall(function()
+    if game:GetService("CoreGui"):FindFirstChild(uiName) then game:GetService("CoreGui")[uiName]:Destroy() end
+    if lp.PlayerGui:FindFirstChild(uiName) then lp.PlayerGui[uiName]:Destroy() end
+end)
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "AutomsByFluuFinal"
+ScreenGui.Name = uiName
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-local success, _ = pcall(function() ScreenGui.Parent = game:GetService("CoreGui") end)
-if not success then ScreenGui.Parent = lp:WaitForChild("PlayerGui") end
+
+local successUI, _ = pcall(function() ScreenGui.Parent = game:GetService("CoreGui") end)
+if not successUI then ScreenGui.Parent = lp:WaitForChild("PlayerGui") end
 
 -- [[ UI DESIGN ]]
 local MainFrame = Instance.new("Frame", ScreenGui)
@@ -19,7 +23,6 @@ MainFrame.Position = UDim2.new(0.5, -115, 0.5, -190)
 MainFrame.Size = UDim2.new(0, 230, 0, 380)
 MainFrame.Active = true
 MainFrame.Draggable = true
-MainFrame.ZIndex = 5
 Instance.new("UICorner", MainFrame)
 Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(0, 255, 150)
 
@@ -30,14 +33,12 @@ Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.BackgroundTransparency = 1
 Title.TextSize = 14
-Title.ZIndex = 10
 
 -- STATS PANEL
 local StatsFrame = Instance.new("Frame", MainFrame)
 StatsFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 StatsFrame.Position = UDim2.new(0.05, 0, 0.12, 0)
 StatsFrame.Size = UDim2.new(0.9, 0, 0, 105)
-StatsFrame.ZIndex = 6
 Instance.new("UICorner", StatsFrame)
 
 local function createStatLabel(name, pos, color)
@@ -50,7 +51,6 @@ local function createStatLabel(name, pos, color)
     lbl.Font = Enum.Font.GothamMedium
     lbl.TextSize = 11
     lbl.Text = name .. " : 0"
-    lbl.ZIndex = 10
     return lbl
 end
 
@@ -68,7 +68,6 @@ QtyInput.PlaceholderText = "Beli berapa?"
 QtyInput.Text = "100"
 QtyInput.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 QtyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-QtyInput.ZIndex = 10
 Instance.new("UICorner", QtyInput)
 
 local BuyBtn = Instance.new("TextButton", MainFrame)
@@ -78,7 +77,6 @@ BuyBtn.Text = "AUTO BUY (DEALER)"
 BuyBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
 BuyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 BuyBtn.Font = Enum.Font.GothamBold
-BuyBtn.ZIndex = 10
 Instance.new("UICorner", BuyBtn)
 
 local CookBtn = Instance.new("TextButton", MainFrame)
@@ -88,7 +86,6 @@ CookBtn.Text = "START COOKING"
 CookBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
 CookBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CookBtn.Font = Enum.Font.GothamBold
-CookBtn.ZIndex = 10
 Instance.new("UICorner", CookBtn)
 
 local Status = Instance.new("TextLabel", MainFrame)
@@ -99,7 +96,6 @@ Status.TextColor3 = Color3.fromRGB(180, 180, 180)
 Status.BackgroundTransparency = 1
 Status.Font = Enum.Font.Gotham
 Status.TextSize = 11
-Status.ZIndex = 10
 
 -- [[ FUNCTIONS ]]
 
@@ -109,9 +105,7 @@ local function clickText(txt)
         if (v:IsA("TextButton") or v:IsA("TextLabel")) and v.Visible then
             if string.find(string.lower(v.Text), string.lower(txt)) then
                 local target = v
-                if v:IsA("TextLabel") and v.Parent:IsA("TextButton") then
-                    target = v.Parent
-                end
+                if v:IsA("TextLabel") and v.Parent:IsA("TextButton") then target = v.Parent end
                 local pos = target.AbsolutePosition
                 local size = target.AbsoluteSize
                 VIM:SendMouseButtonEvent(pos.X + size.X/2, pos.Y + size.Y/2 + 58, 0, true, game, 1)
@@ -127,13 +121,12 @@ end
 local function pressE_Smart()
     local char = lp.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return false end
-    
     for _, v in pairs(workspace:GetDescendants()) do
         if v:IsA("ProximityPrompt") then
             local parent = v.Parent
-            local dist = (char.HumanoidRootPart.Position - v.Parent:GetModelCFrame().Position).Magnitude rescue pcall(function() dist = (char.HumanoidRootPart.Position - parent.Position).Magnitude end)
-            
-            if dist < 18 then -- Jangkauan sedikit lebih jauh
+            local pPos = (parent:IsA("Model") and parent:GetModelCFrame().Position) or parent.Position
+            local dist = (char.HumanoidRootPart.Position - pPos).Magnitude
+            if dist < 18 then
                 fireproximityprompt(v)
                 return true
             end
@@ -149,24 +142,24 @@ BuyBtn.MouseButton1Click:Connect(function()
     task.spawn(function()
         Status.Text = "Status: Searching Dealer..."
         if pressE_Smart() then
-            -- 1. TUNGGU 2 DETIK
+            -- TUNGGU 2 DETIK SESUAI PERMINTAAN
             task.wait(2)
             
             Status.Text = "Status: Clicking 'Yea..'"
             if clickText("yea") then
-                -- 2. TUNGGU 8 DETIK MENU SHOP
+                -- TUNGGU 8 DETIK MENU SHOP
                 for i = 8, 1, -1 do
                     Status.Text = "Status: Opening Shop ("..i.."s)"
                     task.wait(1)
                 end
                 
-                -- 3. MULAI BUY
+                -- MULAI BELI
                 local items = {"Water", "Sugar", "Gelatin"}
                 for _, item in pairs(items) do
                     Status.Text = "Status: Buying "..item
                     for i = 1, amt do
                         if not clickText(item) then break end
-                        task.wait(0.50)
+                        task.wait(0.35)
                     end
                 end
                 Status.Text = "Status: Done Buying!"
@@ -180,14 +173,7 @@ BuyBtn.MouseButton1Click:Connect(function()
     end)
 end)
 
--- Stats loop & Cooking
-_G.AutoCook = false
-CookBtn.MouseButton1Click:Connect(function()
-    _G.AutoCook = not _G.AutoCook
-    CookBtn.Text = _G.AutoCook and "STOP COOKING" or "START COOKING"
-    CookBtn.BackgroundColor3 = _G.AutoCook and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(200, 0, 0)
-end)
-
+-- Stats Loop
 task.spawn(function()
     while task.wait(1.5) do
         pcall(function()
@@ -212,11 +198,18 @@ task.spawn(function()
     end
 end)
 
+-- Cook Logic
+_G.AutoCook = false
+CookBtn.MouseButton1Click:Connect(function()
+    _G.AutoCook = not _G.AutoCook
+    CookBtn.Text = _G.AutoCook and "STOP COOKING" or "START COOKING"
+    CookBtn.BackgroundColor3 = _G.AutoCook and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(200, 0, 0)
+end)
+
 task.spawn(function()
     while true do
         task.wait(0.5)
         if _G.AutoCook then
-            -- Logic masak (Water -> Sugar -> Gelatin)
             local function autoEquip(n)
                 local b = lp.Backpack
                 local c = lp.Character
@@ -227,16 +220,10 @@ task.spawn(function()
                 end
                 return false
             end
-
-            if autoEquip("Water") then 
-                Status.Text = "Status: Water" pressE_Smart() 
-                for i=21,1,-1 do if not _G.AutoCook then break end Status.Text="Water CD("..i.."s)" task.wait(1) end 
-            end
+            if autoEquip("Water") then Status.Text="Status: Water" pressE_Smart() for i=21,1,-1 do if not _G.AutoCook then break end Status.Text="Water CD("..i.."s)" task.wait(1) end end
             if _G.AutoCook and autoEquip("Sugar") then Status.Text="Status: Sugar" pressE_Smart() task.wait(3) end
             if _G.AutoCook and autoEquip("Gelatin") then Status.Text="Status: Gelatin" pressE_Smart() task.wait(3) end
-            if _G.AutoCook then 
-                for i=46,1,-1 do if not _G.AutoCook then break end Status.Text="Cooking("..i.."s)" task.wait(1) end 
-            end
+            if _G.AutoCook then for i=46,1,-1 do if not _G.AutoCook then break end Status.Text="Cooking("..i.."s)" task.wait(1) end end
             if _G.AutoCook and autoEquip("Empty") then Status.Text="Status: Collecting" pressE_Smart() task.wait(5) end
         end
     end
