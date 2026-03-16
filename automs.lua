@@ -1,4 +1,4 @@
--- AUTOMS BY FLUU - SOUTH BRONX (PRECISE ITEM DETECTION)
+-- AUTOMS BY FLUU - SOUTH BRONX
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local UICorner = Instance.new("UICorner")
@@ -70,7 +70,7 @@ GelatinCount = createStatLabel("Gelatin Stock", UDim2.new(0, 10, 0, 45))
 UnfinishedMS = createStatLabel("⏳ Unfinished MS", UDim2.new(0, 10, 0, 65), Color3.fromRGB(255, 165, 0))
 FinishedMS = createStatLabel("✅ Finished MS", UDim2.new(0, 10, 0, 85), Color3.fromRGB(0, 255, 150))
 
--- LOGIK: Scan Inventory per Item
+-- LOGIK: Update Dashboard
 local function updateDashboard()
     local p = game.Players.LocalPlayer
     if not p or not p:FindFirstChild("Backpack") then return end
@@ -90,8 +90,7 @@ local function updateDashboard()
         elseif n:find("sugar") then s = s + 1
         elseif n:find("gelatin") then g = g + 1
         elseif n:find("marshmallow") then
-            -- Deteksi lebih teliti: jika ada kata kunci belum jadi
-            if n:find("unfinish") or n:find("process") or n:find("not") or n:find("raw") or n:find("cook") then
+            if n:find("unfinish") or n:find("process") or n:find("raw") or n:find("cook") then
                 un = un + 1
             else
                 fi = fi + 1
@@ -109,11 +108,11 @@ end
 spawn(function()
     while true do
         updateDashboard()
-        task.wait(1) -- Cek tiap 1 detik biar akurat
+        task.wait(1)
     end
 end)
 
--- Main Script Logic (Tetap Sama)
+-- Interaction Logic
 _G.AutoCook = false
 function pressE()
     for _, v in pairs(game.Workspace:GetDescendants()) do
@@ -122,7 +121,6 @@ function pressE()
             if hrp then
                 local dist = (hrp.Position - v.Parent.Position).Magnitude
                 if dist < 8 then 
-                    task.wait(0.1)
                     fireproximityprompt(v)
                     return true
                 end
@@ -156,28 +154,42 @@ StatusLabel.BackgroundTransparency = 1
 StatusLabel.Font = Enum.Font.Gotham
 StatusLabel.TextSize = 11
 
+-- MAIN LOOP: Jeda 10 Detik Setelah Air
 spawn(function()
     while true do
         task.wait(0.5)
         if _G.AutoCook then
+            -- 1. Masukkan Air
             StatusLabel.Text = "System: Adding Water..."
-            if pressE() then task.wait(10.1) end
+            if pressE() then 
+                -- TUNGGU COOLDOWN 10 DETIK
+                for i = 10, 1, -1 do
+                    if not _G.AutoCook then break end
+                    StatusLabel.Text = "System: Water CD ("..i.."s)"
+                    task.wait(1)
+                end
+            end
+            
             if not _G.AutoCook then continue end
             
+            -- 2. Mixing Bahan Lain
             StatusLabel.Text = "System: Mixing Ingredients..."
-            pressE() task.wait(1.2)
+            pressE() task.wait(1.5)
             pressE()
             
+            -- 3. Proses Masak
             for i = 45, 1, -1 do
                 if not _G.AutoCook then break end
                 StatusLabel.Text = "System: Cooking ("..i.."s)"
                 task.wait(1)
             end
+            
             if not _G.AutoCook then continue end
 
+            -- 4. Ambil Hasil
             StatusLabel.Text = "System: Collecting MS..."
             pressE()
-            task.wait(0.8)
+            task.wait(1)
         else
             StatusLabel.Text = "System: Idle"
         end
