@@ -59,20 +59,19 @@ local GelatinCount = createStatLabel("Gelatin", UDim2.new(0, 10, 0, 41))
 local UnfinishedMS = createStatLabel("⏳ Ready to Cook", UDim2.new(0, 10, 0, 62), Color3.fromRGB(255, 165, 0))
 local FinishedMS = createStatLabel("✅ Finished MS", UDim2.new(0, 10, 0, 80), Color3.fromRGB(0, 255, 150))
 
--- [[ FUNCTIONS ]]
+-- [[ LOGIC E & CLICK ]]
 
-local function clickText(txt)
-    local pGui = lp:WaitForChild("PlayerGui")
-    for _, v in pairs(pGui:GetDescendants()) do
-        if (v:IsA("TextButton") or v:IsA("TextLabel")) and v.Visible then
-            if string.find(string.lower(v.Text), string.lower(txt)) then
-                local target = v
-                if v:IsA("TextLabel") and v.Parent:IsA("TextButton") then target = v.Parent end
-                local pos = target.AbsolutePosition
-                local size = target.AbsoluteSize
-                VIM:SendMouseButtonEvent(pos.X + size.X/2, pos.Y + size.Y/2 + 58, 0, true, game, 1)
-                task.wait(0.05)
-                VIM:SendMouseButtonEvent(pos.X + size.X/2, pos.Y + size.Y/2 + 58, 0, false, game, 1)
+local function pressE_Global()
+    local char = lp.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return false end
+    
+    -- ProximityPrompt terdekat 
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("ProximityPrompt") then
+            local parent = v.Parent
+            local pPos = (parent:IsA("Model") and parent:GetModelCFrame().Position) or (parent:IsA("BasePart") and parent.Position)
+            if pPos and (char.HumanoidRootPart.Position - pPos).Magnitude < 15 then
+                fireproximityprompt(v)
                 return true
             end
         end
@@ -80,33 +79,7 @@ local function clickText(txt)
     return false
 end
 
-local function pressE_Global()
-    local char = lp.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return false end
-    local root = char.HumanoidRootPart
-    local closestPrompt = nil
-    local shortestDist = 18
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("ProximityPrompt") then
-            local pPos = (v.Parent:IsA("Model") and v.Parent:GetModelCFrame().Position) or (v.Parent:IsA("BasePart") and v.Parent.Position)
-            if pPos then
-                local dist = (root.Position - pPos).Magnitude
-                if dist < shortestDist then
-                    shortestDist = dist
-                    closestPrompt = v
-                end
-            end
-        end
-    end
-    if closestPrompt then
-        fireproximityprompt(closestPrompt)
-        return true
-    end
-    return false
-end
-
--- [[ BUTTONS & LOGIC ]]
-
+-- [[ BUTTONS ]]
 local QtyInput = Instance.new("TextBox", MainFrame)
 QtyInput.Size = UDim2.new(0.85, 0, 0, 30)
 QtyInput.Position = UDim2.new(0.075, 0, 0.45, 0)
@@ -143,12 +116,28 @@ Status.BackgroundTransparency = 1
 Status.Font = Enum.Font.Gotham
 Status.TextSize = 11
 
+-- [[ AUTO BUY LOGIC ]]
 BuyBtn.MouseButton1Click:Connect(function()
     local amt = tonumber(QtyInput.Text) or 10
     task.spawn(function()
         Status.Text = "Status: Interacting..."
         if pressE_Global() then
             task.wait(2)
+            local function clickText(txt)
+                for _, v in pairs(lp.PlayerGui:GetDescendants()) do
+                    if (v:IsA("TextButton") or v:IsA("TextLabel")) and v.Visible and string.find(v.Text:lower(), txt:lower()) then
+                        local target = v:IsA("TextLabel") and v.Parent or v
+                        local pos = target.AbsolutePosition
+                        local size = target.AbsoluteSize
+                        VIM:SendMouseButtonEvent(pos.X + size.X/2, pos.Y + size.Y/2 + 58, 0, true, game, 1)
+                        task.wait(0.05)
+                        VIM:SendMouseButtonEvent(pos.X + size.X/2, pos.Y + size.Y/2 + 58, 0, false, game, 1)
+                        return true
+                    end
+                end
+                return false
+            end
+
             if clickText("yea") then
                 for i = 6, 1, -1 do
                     Status.Text = "Status: Opening Shop ("..i.."s)"
@@ -157,10 +146,7 @@ BuyBtn.MouseButton1Click:Connect(function()
                 local items = {"Water", "Sugar", "Gelatin"}
                 for _, item in pairs(items) do
                     Status.Text = "Status: Buying "..item
-                    for i = 1, amt do
-                        if not clickText(item) then break end
-                        task.wait(0.35)
-                    end
+                    for i = 1, amt do if not clickText(item) then break end task.wait(0.35) end
                 end
                 Status.Text = "Status: Done Buying!"
             end
@@ -185,43 +171,53 @@ task.spawn(function()
                 local char = lp.Character
                 local hum = char:FindFirstChildOfClass("Humanoid")
                 
-                local function useIngredient(name, statusText)
-                    local tool = lp.Backpack:FindFirstChild(name) or (char:FindFirstChild(name))
+                local function forceUse(searchName, display)
+                    local tool = nil
+                    -- Cari item di backpack
+                    for _, v in pairs(lp.Backpack:GetChildren()) do
+                        if v.Name:lower():find(searchName:lower()) then tool = v break end
+                    end
+                    if not tool then
+                        for _, v in pairs(char:GetChildren()) do
+                            if v:IsA("Tool") and v.Name:lower():find(searchName:lower()) then tool = v break end
+                        end
+                    end
+
                     if tool then
-                        Status.Text = "Status: " .. statusText
-                        hum:EquipTool(tool)
+                        Status.Text = "Status: " .. display
+                        if tool.Parent ~= char then hum:EquipTool(tool) end
+                        task.wait(0.5)
+                        
+                        -- SPAM E
+                        local retryCount = 0
                         repeat
                             pressE_Global()
-                            task.wait(0.5)
-                        until not char:FindFirstChild(name) or not _G.AutoCook
+                            task.wait(0.2)
+                            retryCount = retryCount + 1
+                        until not tool.Parent or tool.Parent == nil or not _G.AutoCook or retryCount > 50
+                        return true
                     end
+                    return false
                 end
 
-                -- Tahap Masak
-                useIngredient("Water", "Adding Water")
-                if _G.AutoCook then task.wait(20) end 
+                -- Urutan penggunaan bahan
+                if forceUse("water", "Adding Water") then
+                    for i = 21, 1, -1 do if not _G.AutoCook then break end Status.Text = "Water CD: "..i.."s" task.wait(1) end
+                end
+                if _G.AutoCook then forceUse("sugar", "Adding Sugar") end
+                if _G.AutoCook then forceUse("gelatin", "Adding Gelatin") end
                 
-                useIngredient("Sugar", "Adding Sugar")
-                useIngredient("Gelatin", "Adding Gelatin")
-                
+                -- Jeda memasak
                 if _G.AutoCook then
-                    for i = 45, 1, -1 do
+                    for i = 46, 1, -1 do
                         if not _G.AutoCook then break end
                         Status.Text = "Cooking: " .. i .. "s"
                         task.wait(1)
                     end
                 end
                 
-                -- Ambil Marshmallow
-                local empty = lp.Backpack:FindFirstChild("Empty") or char:FindFirstChild("Empty")
-                if empty then
-                    Status.Text = "Status: Collecting"
-                    hum:EquipTool(empty)
-                    repeat
-                        pressE_Global()
-                        task.wait(0.5)
-                    until not char:FindFirstChild("Empty") or not _G.AutoCook
-                end
+                -- Ambil hasil 
+                if _G.AutoCook then forceUse("empty", "Collecting MS") end
             end)
         end
     end
@@ -239,9 +235,7 @@ task.spawn(function()
                 if n:find("water") then w = w + 1
                 elseif n:find("sugar") and not n:find("empty") then s = s + 1
                 elseif n:find("gelatin") then g = g + 1
-                elseif n:find("marshmallow") or n:find("ms") then
-                    if not n:find("unfinish") and not n:find("raw") then fi = fi + 1 end
-                end
+                elseif (n:find("marshmallow") or n:find("ms")) and not n:find("un") and not n:find("raw") then fi = fi + 1 end
             end
             local combo = math.min(w, s, g)
             WaterCount.Text = "Water : "..w
