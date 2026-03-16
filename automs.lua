@@ -1,4 +1,4 @@
--- MODERN GLOW SOUTH BRONX (PRODUCTION DASHBOARD)
+-- MODERN GLOW SOUTH BRONX (MIXED STYLE + FAST)
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local UICorner = Instance.new("UICorner")
@@ -12,7 +12,7 @@ local StatusLabel = Instance.new("TextLabel")
 local WaterCount, SugarCount, GelatinCount, UnfinishedMS, FinishedMS
 
 -- Setup UI Utama
-ScreenGui.Name = "MarshmallowHubV3"
+ScreenGui.Name = "MarshmallowHubV8"
 ScreenGui.Parent = game:GetService("CoreGui")
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
@@ -20,7 +20,7 @@ MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.Position = UDim2.new(0.5, -115, 0.5, -125)
-MainFrame.Size = UDim2.new(0, 230, 0, 250) -- Ukuran pas buat dashboard
+MainFrame.Size = UDim2.new(0, 230, 0, 250)
 MainFrame.Active = true
 MainFrame.Draggable = true
 
@@ -60,14 +60,14 @@ local function createStatLabel(name, pos, color)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Font = Enum.Font.GothamMedium
     lbl.TextSize = 12
-    lbl.Text = name .. ": 0"
+    lbl.Text = name .. " : 0"
     return lbl
 end
 
--- Membuat Label Dashboard
-WaterCount = createStatLabel("💧 Water", UDim2.new(0, 10, 0, 5))
-SugarCount = createStatLabel("⬜ Sugar", UDim2.new(0, 10, 0, 25))
-GelatinCount = createStatLabel("🧬 Gelatin", UDim2.new(0, 10, 0, 45))
+-- Dashboard: Bahan (Tanpa Emoji) & Marshmallow (Pakai Emoji)
+WaterCount = createStatLabel("Water Stock", UDim2.new(0, 10, 0, 5))
+SugarCount = createStatLabel("Sugar Stock", UDim2.new(0, 10, 0, 25))
+GelatinCount = createStatLabel("Gelatin Stock", UDim2.new(0, 10, 0, 45))
 UnfinishedMS = createStatLabel("⏳ Unfinished MS", UDim2.new(0, 10, 0, 65), Color3.fromRGB(255, 165, 0))
 FinishedMS = createStatLabel("✅ Finished MS", UDim2.new(0, 10, 0, 85), Color3.fromRGB(0, 255, 150))
 
@@ -93,12 +93,16 @@ ButtonCorner.Parent = ToggleBtn
 
 -- LOGIK: Scan Inventory
 local function updateDashboard()
-    local backpack = game.Players.LocalPlayer.Backpack:GetChildren()
-    local char = game.Players.LocalPlayer.Character:GetChildren()
-    local allItems = {}
+    local p = game.Players.LocalPlayer
+    if not p or not p:FindFirstChild("Backpack") then return end
     
-    for _, v in pairs(backpack) do table.insert(allItems, v.Name) end
-    for _, v in pairs(char) do table.insert(allItems, v.Name) end
+    local allItems = {}
+    for _, v in pairs(p.Backpack:GetChildren()) do table.insert(allItems, v.Name) end
+    if p.Character then
+        for _, v in pairs(p.Character:GetChildren()) do
+            if v:IsA("Tool") then table.insert(allItems, v.Name) end
+        end
+    end
 
     local w, s, g, un, fi = 0, 0, 0, 0, 0
     for _, name in pairs(allItems) do
@@ -115,11 +119,11 @@ local function updateDashboard()
         end
     end
     
-    WaterCount.Text = "💧 Water: " .. w
-    SugarCount.Text = "⬜ Sugar: " .. s
-    GelatinCount.Text = "🧬 Gelatin: " .. g
-    UnfinishedMS.Text = "⏳ Unfinished MS: " .. un
-    FinishedMS.Text = "✅ Finished MS: " .. fi
+    WaterCount.Text = "Water Stock : " .. w
+    SugarCount.Text = "Sugar Stock : " .. s
+    GelatinCount.Text = "Gelatin Stock : " .. g
+    UnfinishedMS.Text = "⏳ Unfinished MS : " .. un
+    FinishedMS.Text = "✅ Finished MS : " .. fi
 end
 
 spawn(function()
@@ -129,8 +133,7 @@ spawn(function()
     end
 end)
 
--- LOGIK: AFK & Anti-AFK
-_G.AutoCook = false
+-- Anti-AFK
 game:GetService("Players").LocalPlayer.Idled:Connect(function()
     game:GetService("VirtualUser"):CaptureController()
     game:GetService("VirtualUser"):ClickButton2(Vector2.new())
@@ -139,11 +142,14 @@ end)
 function pressE()
     for _, v in pairs(game.Workspace:GetDescendants()) do
         if v:IsA("ProximityPrompt") then
-            local dist = (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - v.Parent.Position).Magnitude
-            if dist < 8 then 
-                task.wait(math.random(4, 8)/10)
-                fireproximityprompt(v)
-                return true
+            local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local dist = (hrp.Position - v.Parent.Position).Magnitude
+                if dist < 8 then 
+                    task.wait(0.1)
+                    fireproximityprompt(v)
+                    return true
+                end
             end
         end
     end
@@ -163,17 +169,17 @@ game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
     end
 end)
 
--- Main Production Loop
+-- Main Loop (FAST COLLECT)
 spawn(function()
     while true do
-        task.wait(1)
+        task.wait(0.5)
         if _G.AutoCook then
             StatusLabel.Text = "System: Adding Water..."
-            if pressE() then task.wait(10) end
+            if pressE() then task.wait(10.1) end
             if not _G.AutoCook then continue end
             
             StatusLabel.Text = "System: Mixing Ingredients..."
-            pressE() task.wait(2.5)
+            pressE() task.wait(1.2)
             pressE()
             
             for i = 45, 1, -1 do
@@ -185,7 +191,7 @@ spawn(function()
 
             StatusLabel.Text = "System: Collecting MS..."
             pressE()
-            task.wait(5)
+            task.wait(0.8)
         else
             StatusLabel.Text = "System: Idle"
         end
