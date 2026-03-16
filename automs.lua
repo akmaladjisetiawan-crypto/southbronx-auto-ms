@@ -106,13 +106,21 @@ Status.ZIndex = 10
 local function clickText(txt)
     local pGui = lp:WaitForChild("PlayerGui")
     for _, v in pairs(pGui:GetDescendants()) do
-        if v:IsA("TextButton") and v.Visible and string.find(string.lower(v.Text), string.lower(txt)) then
-            local pos = v.AbsolutePosition
-            local size = v.AbsoluteSize
-            VIM:SendMouseButtonEvent(pos.X + size.X/2, pos.Y + size.Y/2 + 58, 0, true, game, 1)
-            task.wait(0.05)
-            VIM:SendMouseButtonEvent(pos.X + size.X/2, pos.Y + size.Y/2 + 58, 0, false, game, 1)
-            return true
+        if (v:IsA("TextButton") or v:IsA("TextLabel")) and v.Visible then
+            if string.find(string.lower(v.Text), string.lower(txt)) then
+                local target = v
+                if v:IsA("TextLabel") and v.Parent:IsA("TextButton") then
+                    target = v.Parent
+                end
+                
+                local pos = target.AbsolutePosition
+                local size = target.AbsoluteSize
+                
+                VIM:SendMouseButtonEvent(pos.X + size.X/2, pos.Y + size.Y/2 + 58, 0, true, game, 1)
+                task.wait(0.05)
+                VIM:SendMouseButtonEvent(pos.X + size.X/2, pos.Y + size.Y/2 + 58, 0, false, game, 1)
+                return true
+            end
         end
     end
     return false
@@ -128,7 +136,7 @@ local function pressE(targetName)
             if targetName then
                 local n = parent.Name:lower()
                 local t = v.ActionText:lower()
-                if n:find(targetName:lower()) or n:find("dealer") or t:find("talk") or t:find("interact") then match = true end
+                if n:find(targetName:lower()) or n:find("dealer") or t:find("talk") then match = true end
             else
                 if v.ActionText:lower():find("cook") or parent.Name:lower():find("stove") then match = true end
             end
@@ -142,11 +150,52 @@ local function pressE(targetName)
     return false
 end
 
--- [[ LOGIC ]]
+-- [[ MAIN LOGIC ]]
 
+BuyBtn.MouseButton1Click:Connect(function()
+    local amt = tonumber(QtyInput.Text) or 10
+    task.spawn(function()
+        Status.Text = "Status: Interacting..."
+        if pressE("Lamont") then
+            -- 1. TUNGGU 2 DETIK
+            task.wait(2)
+            
+            Status.Text = "Status: Clicking 'Yea..'"
+            if clickText("yea") then
+                -- 2. TUNGGU 8 DETIK MENU SHOP MUNCUL
+                for i = 8, 1, -1 do
+                    Status.Text = "Status: Opening Shop ("..i.."s)"
+                    task.wait(1)
+                end
+                
+                -- 3. MULAI BELANJA
+                local items = {"Water", "Sugar", "Gelatin"}
+                for _, item in pairs(items) do
+                    Status.Text = "Status: Buying "..item
+                    for i = 1, amt do
+                        if not clickText(item) then break end
+                        task.wait(0.35)
+                    end
+                end
+                Status.Text = "Status: Done Buying!"
+            else
+                Status.Text = "Status: 'Yea' Not Found"
+            end
+        else
+            Status.Text = "Status: Dealer Not Found"
+        end
+        task.wait(2) Status.Text = "Status: Idle"
+    end)
+end)
+
+-- Stats loop & Cooking
 _G.AutoCook = false
+CookBtn.MouseButton1Click:Connect(function()
+    _G.AutoCook = not _G.AutoCook
+    CookBtn.Text = _G.AutoCook and "STOP COOKING" or "START COOKING"
+    CookBtn.BackgroundColor3 = _G.AutoCook and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(200, 0, 0)
+end)
 
--- Stats Update
 task.spawn(function()
     while task.wait(1.5) do
         pcall(function()
@@ -169,53 +218,6 @@ task.spawn(function()
             FinishedMS.Text = "✅ Finished MS : "..fi
         end)
     end
-end)
-
--- AUTO BUY Logic
-BuyBtn.MouseButton1Click:Connect(function()
-    local amt = tonumber(QtyInput.Text) or 10
-    task.spawn(function()
-        Status.Text = "Status: Interacting..."
-        if pressE("Lamont") or pressE("Dealer") then
-            -- 1. Tunggu 3 detik
-            for i = 3, 1, -1 do
-                Status.Text = "Status: Waiting Dialog ("..i.."s)"
-                task.wait(1)
-            end
-            
-            Status.Text = "Status: Clicking 'Yea..'"
-            if clickText("yea") then
-                -- 2. Tunggu 8 detik biar menu shop muncul
-                for i = 8, 1, -1 do
-                    Status.Text = "Status: Opening Shop ("..i.."s)"
-                    task.wait(1)
-                end
-                
-                -- 3. Mulai Belanja
-                local list = {"Water", "Sugar Block Bag", "Gelatin"}
-                for _, item in pairs(list) do
-                    Status.Text = "Status: Buying "..item
-                    for i = 1, amt do
-                        if not clickText(item) then break end
-                        task.wait(0.35)
-                    end
-                end
-                Status.Text = "Status: Done Buying!"
-            else
-                Status.Text = "Status: 'Yea' Not Found"
-            end
-        else
-            Status.Text = "Status: Dealer Not Found"
-        end
-        task.wait(2) Status.Text = "Status: Idle"
-    end)
-end)
-
--- AUTO COOK Logic
-CookBtn.MouseButton1Click:Connect(function()
-    _G.AutoCook = not _G.AutoCook
-    CookBtn.Text = _G.AutoCook and "STOP COOKING" or "START COOKING"
-    CookBtn.BackgroundColor3 = _G.AutoCook and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
 local function autoEquip(n)
