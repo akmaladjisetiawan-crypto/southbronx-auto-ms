@@ -12,7 +12,7 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 local success, _ = pcall(function() ScreenGui.Parent = game:GetService("CoreGui") end)
 if not success then ScreenGui.Parent = lp:WaitForChild("PlayerGui") end
 
--- UI DESIGN
+-- [[ UI DESIGN ]]
 local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.Position = UDim2.new(0.5, -115, 0.5, -190)
@@ -109,7 +109,6 @@ local function clickText(txt)
         if v:IsA("TextButton") and v.Visible and string.find(string.lower(v.Text), string.lower(txt)) then
             local pos = v.AbsolutePosition
             local size = v.AbsoluteSize
-            -- Offsett
             VIM:SendMouseButtonEvent(pos.X + size.X/2, pos.Y + size.Y/2 + 58, 0, true, game, 1)
             task.wait(0.05)
             VIM:SendMouseButtonEvent(pos.X + size.X/2, pos.Y + size.Y/2 + 58, 0, false, game, 1)
@@ -147,7 +146,7 @@ end
 
 _G.AutoCook = false
 
--- Stats Loop
+-- Stats Update
 task.spawn(function()
     while task.wait(1.5) do
         pcall(function()
@@ -176,17 +175,23 @@ end)
 BuyBtn.MouseButton1Click:Connect(function()
     local amt = tonumber(QtyInput.Text) or 10
     task.spawn(function()
-        Status.Text = "Status: Talking to Dealer..."
+        Status.Text = "Status: Interacting..."
         if pressE("Lamont") or pressE("Dealer") then
-            -- TUNGGU 5 DETIK SESUAI PERMINTAAN
-            for i = 5, 1, -1 do
+            -- 1. Tunggu 3 detik
+            for i = 3, 1, -1 do
                 Status.Text = "Status: Waiting Dialog ("..i.."s)"
                 task.wait(1)
             end
             
-            Status.Text = "Status: Clicking Dialog..."
+            Status.Text = "Status: Clicking 'Yea..'"
             if clickText("yea") then
-                task.wait(1.5)
+                -- 2. Tunggu 8 detik biar menu shop muncul
+                for i = 8, 1, -1 do
+                    Status.Text = "Status: Opening Shop ("..i.."s)"
+                    task.wait(1)
+                end
+                
+                -- 3. Mulai Belanja
                 local list = {"Water", "Sugar Block Bag", "Gelatin"}
                 for _, item in pairs(list) do
                     Status.Text = "Status: Buying "..item
@@ -197,7 +202,7 @@ BuyBtn.MouseButton1Click:Connect(function()
                 end
                 Status.Text = "Status: Done Buying!"
             else
-                Status.Text = "Status: Dialog Not Found"
+                Status.Text = "Status: 'Yea' Not Found"
             end
         else
             Status.Text = "Status: Dealer Not Found"
@@ -206,7 +211,7 @@ BuyBtn.MouseButton1Click:Connect(function()
     end)
 end)
 
--- COOK Logic
+-- AUTO COOK Logic
 CookBtn.MouseButton1Click:Connect(function()
     _G.AutoCook = not _G.AutoCook
     CookBtn.Text = _G.AutoCook and "STOP COOKING" or "START COOKING"
