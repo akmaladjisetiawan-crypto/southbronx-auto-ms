@@ -59,68 +59,45 @@ local GelatinCount = createStatLabel("Gelatin", UDim2.new(0, 10, 0, 41))
 local UnfinishedMS = createStatLabel("⏳ Ready to Cook", UDim2.new(0, 10, 0, 62), Color3.fromRGB(255, 165, 0))
 local FinishedMS = createStatLabel("✅ Finished MS", UDim2.new(0, 10, 0, 80), Color3.fromRGB(0, 255, 150))
 
--- [[ IMPROVED CORE FUNCTIONS ]]
-
-local function clickText(txt)
-    local pGui = lp:WaitForChild("PlayerGui")
-    for _, v in pairs(pGui:GetDescendants()) do
-        if (v:IsA("TextButton") or v:IsA("TextLabel")) and v.Visible then
-            if string.find(string.lower(v.Text), string.lower(txt)) then
-                local target = v
-                if v:IsA("TextLabel") and v.Parent:IsA("TextButton") then target = v.Parent end
-                local pos = target.AbsolutePosition
-                local size = target.AbsoluteSize
-                VIM:SendMouseButtonEvent(pos.X + size.X/2, pos.Y + size.Y/2 + 58, 0, true, game, 1)
-                task.wait(0.05)
-                VIM:SendMouseButtonEvent(pos.X + size.X/2, pos.Y + size.Y/2 + 58, 0, false, game, 1)
-                return true
-            end
-        end
-    end
-    return false
-end
+-- [[ FUNCTIONS ]]
 
 local function pressE_Global()
     local char = lp.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return false end
     local root = char.HumanoidRootPart
-    local closestPrompt = nil
-    local shortestDist = 25
-
     for _, v in pairs(workspace:GetDescendants()) do
         if v:IsA("ProximityPrompt") then
             local pPos = (v.Parent:IsA("Model") and v.Parent:GetModelCFrame().Position) or (v.Parent:IsA("BasePart") and v.Parent.Position)
             if pPos then
-                local dist = (root.Position - pPos).Magnitude
-                if dist < shortestDist then
-                    shortestDist = dist
-                    closestPrompt = v
+                if (root.Position - pPos).Magnitude < 15 then
+                    fireproximityprompt(v)
+                    VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                    task.wait(0.05)
+                    VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                    return true
                 end
             end
         end
     end
-    if closestPrompt then
-        fireproximityprompt(closestPrompt)
-        return true
+    return false
+end
+
+local function interactPot()
+    for i = 1, 3 do
+        if pressE_Global() then return true end
+        task.wait(0.4)
     end
     return false
 end
 
--- Perbaikan fungsi equip agar tidak spam unequip
-local function safeEquip(itemName)
+local function safeEquip(n)
     local b = lp.Backpack
     local c = lp.Character
     if not b or not c then return false end
-
-    -- Cek jika sudah pegang
     local current = c:FindFirstChildWhichIsA("Tool")
-    if current and string.find(current.Name:lower(), itemName:lower()) then
-        return true
-    end
-
-    -- Cari di backpack
+    if current and string.find(current.Name:lower(), n:lower()) then return true end
     for _, t in pairs(b:GetChildren()) do
-        if t:IsA("Tool") and string.find(t.Name:lower(), itemName:lower()) then
+        if t:IsA("Tool") and string.find(t.Name:lower(), n:lower()) then
             c.Humanoid:EquipTool(t)
             task.wait(0.8)
             return true
@@ -129,70 +106,26 @@ local function safeEquip(itemName)
     return false
 end
 
--- [[ UI INTERACTION ]]
+-- [[ BUTTONS & LOGIC ]]
 local QtyInput = Instance.new("TextBox", MainFrame)
-QtyInput.Size = UDim2.new(0.85, 0, 0, 30)
-QtyInput.Position = UDim2.new(0.075, 0, 0.45, 0)
-QtyInput.PlaceholderText = "Beli berapa?"
-QtyInput.Text = "100"
-QtyInput.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-QtyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+QtyInput.Size = UDim2.new(0.85, 0, 0, 30); QtyInput.Position = UDim2.new(0.075, 0, 0.45, 0)
+QtyInput.PlaceholderText = "Beli berapa?"; QtyInput.Text = "100"
+QtyInput.BackgroundColor3 = Color3.fromRGB(35, 35, 35); QtyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
 Instance.new("UICorner", QtyInput)
 
-local BuyBtn = Instance.new("TextButton", MainFrame)
-BuyBtn.Size = UDim2.new(0.85, 0, 0, 35)
-BuyBtn.Position = UDim2.new(0.075, 0, 0.56, 0)
-BuyBtn.Text = "AUTO BUY (DEALER)"
-BuyBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-BuyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-BuyBtn.Font = Enum.Font.GothamBold
-Instance.new("UICorner", BuyBtn)
-
 local CookBtn = Instance.new("TextButton", MainFrame)
-CookBtn.Size = UDim2.new(0.85, 0, 0, 40)
-CookBtn.Position = UDim2.new(0.075, 0, 0.72, 0)
-CookBtn.Text = "START COOKING"
-CookBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-CookBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CookBtn.Font = Enum.Font.GothamBold
+CookBtn.Size = UDim2.new(0.85, 0, 0, 40); CookBtn.Position = UDim2.new(0.075, 0, 0.72, 0)
+CookBtn.Text = "START COOKING"; CookBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+CookBtn.TextColor3 = Color3.fromRGB(255, 255, 255); CookBtn.Font = Enum.Font.GothamBold
 Instance.new("UICorner", CookBtn)
 
 local Status = Instance.new("TextLabel", MainFrame)
-Status.Size = UDim2.new(1, 0, 0, 25)
-Status.Position = UDim2.new(0, 0, 0.88, 0)
-Status.Text = "Status: Idle"
-Status.TextColor3 = Color3.fromRGB(180, 180, 180)
-Status.BackgroundTransparency = 1
-Status.Font = Enum.Font.Gotham
-Status.TextSize = 11
+Status.Size = UDim2.new(1, 0, 0, 25); Status.Position = UDim2.new(0, 0, 0.88, 0)
+Status.Text = "Status: Idle"; Status.TextColor3 = Color3.fromRGB(180, 180, 180)
+Status.BackgroundTransparency = 1; Status.Font = Enum.Font.Gotham; Status.TextSize = 11
 
-BuyBtn.MouseButton1Click:Connect(function()
-    local amt = tonumber(QtyInput.Text) or 10
-    task.spawn(function()
-        Status.Text = "Status: Interacting..."
-        if pressE_Global() then
-            task.wait(2)
-            if clickText("yea") then
-                for i = 6, 1, -1 do
-                    Status.Text = "Status: Opening Shop ("..i.."s)"
-                    task.wait(1)
-                end
-                local items = {"Water", "Sugar", "Gelatin"}
-                for _, item in pairs(items) do
-                    Status.Text = "Status: Buying "..item
-                    for i = 1, amt do
-                        if not clickText(item) then break end
-                        task.wait(0.35)
-                    end
-                end
-                Status.Text = "Status: Done Buying!"
-            end
-        end
-        task.wait(2) Status.Text = "Status: Idle"
-    end)
-end)
-
--- STATS REFRESHER
+-- STATS REFRESH (Ditambah pengecekan bahan)
+local hasMaterials = false
 task.spawn(function()
     while task.wait(2) do
         pcall(function()
@@ -209,16 +142,13 @@ task.spawn(function()
                 end
             end
             local combo = math.min(w, s, g)
-            WaterCount.Text = "Water : "..w
-            SugarCount.Text = "Sugar : "..s
-            GelatinCount.Text = "Gelatin : "..g
-            UnfinishedMS.Text = "⏳ Ready to Cook : "..combo
-            FinishedMS.Text = "✅ Finished MS : "..fi
+            hasMaterials = (combo > 0)
+            WaterCount.Text = "Water : "..w; SugarCount.Text = "Sugar : "..s; GelatinCount.Text = "Gelatin : "..g
+            UnfinishedMS.Text = "⏳ Ready to Cook : "..combo; FinishedMS.Text = "✅ Finished MS : "..fi
         end)
     end
 end)
 
--- [[ FIXED COOKING LOOP ]]
 _G.AutoCook = false
 CookBtn.MouseButton1Click:Connect(function()
     _G.AutoCook = not _G.AutoCook
@@ -230,49 +160,42 @@ task.spawn(function()
     while true do
         task.wait(1)
         if _G.AutoCook then
-            -- 1. WATER
-            if safeEquip("Water") then 
-                Status.Text = "Status: Inputting Water" 
-                task.wait(0.2)
-                pressE_Global() 
-                for i=21,1,-1 do 
-                    if not _G.AutoCook then break end 
-                    Status.Text = "Water CD ("..i.."s)" 
-                    task.wait(1) 
-                end 
-            end
-            
-            -- 2. SUGAR
-            if _G.AutoCook and safeEquip("Sugar") then 
-                Status.Text = "Status: Inputting Sugar" 
-                task.wait(0.2)
-                pressE_Global() 
-                task.wait(2) 
-            end
-            
-            -- 3. GELATIN
-            if _G.AutoCook and safeEquip("Gelatin") then 
-                Status.Text = "Status: Inputting Gelatin" 
-                task.wait(0.2)
-                pressE_Global() 
-                task.wait(2) 
-            end
-            
-            -- 4. WAIT COOKING
-            if _G.AutoCook then 
-                for i=46,1,-1 do 
-                    if not _G.AutoCook then break end 
-                    Status.Text = "Cooking ("..i.."s)" 
-                    task.wait(1) 
-                end 
-            end
-            
-            -- 5. COLLECT WITH EMPTY
-            if _G.AutoCook and safeEquip("Empty") then 
-                Status.Text = "Status: Collecting MS..." 
-                task.wait(0.2)
-                pressE_Global() 
-                task.wait(4) 
+            if not hasMaterials then
+                Status.Text = "Status: Out of Materials!"
+                task.wait(2)
+            else
+                -- 1. WATER
+                if safeEquip("Water") then
+                    Status.Text = "Status: Water -> Pot"
+                    task.wait(0.5)
+                    interactPot()
+                    for i=21,1,-1 do if not _G.AutoCook then break end Status.Text="Water CD ("..i.."s)" task.wait(1) end
+                end
+                -- 2. SUGAR
+                if _G.AutoCook and safeEquip("Sugar") then
+                    Status.Text = "Status: Sugar -> Pot"
+                    task.wait(0.5)
+                    interactPot()
+                    task.wait(3)
+                end
+                -- 3. GELATIN
+                if _G.AutoCook and safeEquip("Gelatin") then
+                    Status.Text = "Status: Gelatin -> Pot"
+                    task.wait(0.5)
+                    interactPot()
+                    task.wait(3)
+                end
+                -- 4. COOKING
+                if _G.AutoCook then
+                    for i=46,1,-1 do if not _G.AutoCook then break end Status.Text="Cooking ("..i.."s)" task.wait(1) end
+                end
+                -- 5. COLLECT
+                if _G.AutoCook and safeEquip("Empty") then
+                    Status.Text = "Status: Collecting..."
+                    task.wait(0.5)
+                    interactPot()
+                    task.wait(5)
+                end
             end
         end
     end
