@@ -1,24 +1,29 @@
--- AUTOMS BY FLUU - SOUTH BRONX (STRICT FLOW VERSION)
+-- AUTOMS BY FLUU - SOUTH BRONX
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local Title = Instance.new("TextLabel")
 local ToggleBtn = Instance.new("TextButton")
 local StatusLabel = Instance.new("TextLabel")
 
--- Setup UI (Bisa Digeser)
+-- Setup UI Utama
 ScreenGui.Name = "AutomsByFluu"
 ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.Position = UDim2.new(0, 50, 0.5, -125)
 MainFrame.Size = UDim2.new(0, 220, 0, 260)
 MainFrame.Active = true
-MainFrame.Draggable = true
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
-Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(0, 255, 150)
+MainFrame.Draggable = true -- UI BISA DIPINDAH
 
--- Judul & Dashboard
+local cornerMS = Instance.new("UICorner", MainFrame)
+cornerMS.CornerRadius = UDim.new(0, 12)
+local strokeMS = Instance.new("UIStroke", MainFrame)
+strokeMS.Color = Color3.fromRGB(0, 255, 150)
+strokeMS.Thickness = 2
+
 Title.Parent = MainFrame
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Text = "AUTOMS BY FLUU"
@@ -27,6 +32,7 @@ Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
 Title.BackgroundTransparency = 1
 
+-- DASHBOARD STATS
 local StatsFrame = Instance.new("Frame", MainFrame)
 StatsFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 StatsFrame.Position = UDim2.new(0.05, 0, 0.18, 0)
@@ -52,44 +58,53 @@ local GelatinCount = createStatLabel("Gelatin Stock", UDim2.new(0, 10, 0, 45))
 local UnfinishedMS = createStatLabel("⏳ Unfinished MS", UDim2.new(0, 10, 0, 65), Color3.fromRGB(255, 165, 0))
 local FinishedMS = createStatLabel("✅ Finished MS", UDim2.new(0, 10, 0, 85), Color3.fromRGB(0, 255, 150))
 
--- FUNGSI PRESS E (MENCARI PROXIMITY TERDEKAT)
-function pressE()
-    local p = game.Players.LocalPlayer
-    if not p.Character then return end
+-- FUNGSI PRESS E (SUPER FORCE)
+function forcePressE()
+    local char = game.Players.LocalPlayer.Character
+    if not char then return false end
+    
+    local targetPrompt = nil
     for _, v in pairs(workspace:GetDescendants()) do
         if v:IsA("ProximityPrompt") then
-            local dist = (p.Character.HumanoidRootPart.Position - v.Parent.Position).Magnitude
+            local dist = (char.HumanoidRootPart.Position - v.Parent.Position).Magnitude
             if dist < 12 then
-                fireproximityprompt(v)
-                return true
+                targetPrompt = v
+                break
             end
         end
+    end
+
+    if targetPrompt then
+        targetPrompt:InputHoldBegin()
+        task.wait(targetPrompt.HoldDuration + 0.1) -- Menyesuaikan durasi tahan mesin
+        fireproximityprompt(targetPrompt)
+        targetPrompt:InputHoldEnd()
+        return true
     end
     return false
 end
 
--- FUNGSI EQUIP ITEM (BERDASARKAN NAMA)
-function equip(name)
+-- FUNGSI EQUIP ITEM
+function autoEquip(name)
     local p = game.Players.LocalPlayer
     local bp = p:FindFirstChild("Backpack")
-    if not bp or not p.Character then return false end
+    local char = p.Character
+    if not bp or not char then return false end
     
-    -- Cek kalau sudah dipegang
-    local current = p.Character:FindFirstChildOfClass("Tool")
-    if current and current.Name:lower():find(name:lower()) then return true end
+    local held = char:FindFirstChildOfClass("Tool")
+    if held and string.find(string.lower(held.Name), string.lower(name)) then return true end
     
-    -- Cari di tas
     for _, tool in pairs(bp:GetChildren()) do
-        if tool.Name:lower():find(name:lower()) then
-            p.Character.Humanoid:EquipTool(tool)
-            task.wait(0.5)
+        if string.find(string.lower(tool.Name), string.lower(name)) then
+            char.Humanoid:EquipTool(tool)
+            task.wait(0.6)
             return true
         end
     end
     return false
 end
 
--- UPDATE DASHBOARD
+-- UPDATE DASHBOARD LOOP
 spawn(function()
     while true do
         local p = game.Players.LocalPlayer
@@ -112,7 +127,7 @@ spawn(function()
             UnfinishedMS.Text = "⏳ Unfinished MS : "..un
             FinishedMS.Text = "✅ Finished MS : "..fi
         end
-        task.wait(1)
+        task.wait(1.5)
     end
 end)
 
@@ -141,17 +156,17 @@ StatusLabel.BackgroundTransparency = 1
 StatusLabel.Font = Enum.Font.Gotham
 StatusLabel.TextSize = 11
 
--- MAIN LOOP (URUTAN SESUAI PERMINTAAN)
+-- MAIN AFK LOOP (ALUR KAKU)
 spawn(function()
     while true do
         task.wait(1)
         if _G.AutoCook then
-            -- 1. WATER & CD 20s
-            StatusLabel.Text = "Status: Equip Water..."
-            if equip("Water") then
-                task.wait(0.5)
-                StatusLabel.Text = "Status: E - Masukin Water..."
-                if pressE() then
+            -- 1. WATER -> PRESS E -> CD 20S
+            StatusLabel.Text = "Status: Mencari Water..."
+            if autoEquip("Water") then
+                task.wait(1)
+                StatusLabel.Text = "Status: E - Masukkan Water..."
+                if forcePressE() then
                     for i = 20, 1, -1 do
                         if not _G.AutoCook then break end
                         StatusLabel.Text = "Status: Water CD ("..i.."s)"
@@ -159,44 +174,42 @@ spawn(function()
                     end
                 end
             end
-
             if not _G.AutoCook then continue end
 
-            -- 2. SUGAR
-            StatusLabel.Text = "Status: Equip Sugar..."
-            if equip("Sugar") then
-                task.wait(0.5)
-                StatusLabel.Text = "Status: E - Masukin Sugar..."
-                pressE()
-                task.wait(2) -- Jeda antar bahan
-            end
-
-            if not _G.AutoCook then continue end
-
-            -- 3. GELATIN
-            StatusLabel.Text = "Status: Equip Gelatin..."
-            if equip("Gelatin") then
-                task.wait(0.5)
-                StatusLabel.Text = "Status: E - Masukin Gelatin..."
-                pressE()
+            -- 2. SUGAR -> PRESS E
+            StatusLabel.Text = "Status: Mencari Sugar..."
+            if autoEquip("Sugar") then
+                task.wait(1)
+                StatusLabel.Text = "Status: E - Masukkan Sugar..."
+                forcePressE()
                 task.wait(2)
             end
+            if not _G.AutoCook then continue end
 
-            -- 4. COOKING CD 45s
+            -- 3. GELATIN -> PRESS E
+            StatusLabel.Text = "Status: Mencari Gelatin..."
+            if autoEquip("Gelatin") then
+                task.wait(1)
+                StatusLabel.Text = "Status: E - Masukkan Gelatin..."
+                forcePressE()
+                task.wait(2)
+            end
+            if not _G.AutoCook then continue end
+
+            -- 4. MASAK CD 45S
             for i = 45, 1, -1 do
                 if not _G.AutoCook then break end
                 StatusLabel.Text = "Status: Memasak ("..i.."s)"
                 task.wait(1)
             end
-
             if not _G.AutoCook then continue end
 
-            -- 5. AMBIL (Pegang Empty Bag dulu baru E)
-            StatusLabel.Text = "Status: Equip Empty Bag..."
-            if equip("Empty") then
-                task.wait(1)
-                StatusLabel.Text = "Status: E - Ambil Hasil!"
-                pressE()
+            -- 5. AMBIL (EMPTY BAG -> PRESS E)
+            StatusLabel.Text = "Status: Mencari Empty Bag..."
+            if autoEquip("Empty") then
+                task.wait(1.5)
+                StatusLabel.Text = "Status: E - Ambil Marshmallow..."
+                forcePressE()
                 task.wait(3)
             end
         else
