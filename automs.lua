@@ -1,4 +1,4 @@
--- AUTOMS BY FLUU - SOUTH BRONX MARSHMALLOW
+-- AUTOMS BY FLUU - SOUTH BRONX
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local UICorner = Instance.new("UICorner")
@@ -15,7 +15,6 @@ local WaterCount, SugarCount, GelatinCount, UnfinishedMS, FinishedMS
 ScreenGui.Name = "AutomsByFluuHub"
 local parent = game:GetService("CoreGui") or game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 ScreenGui.Parent = parent
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
@@ -87,7 +86,33 @@ ToggleBtn.Font = Enum.Font.GothamBold
 ToggleBtn.TextSize = 14
 ButtonCorner.Parent = ToggleBtn
 
--- Fungsi Scan Inventory
+-- SISTEM VIRTUAL KEYBOARD (EMULASI PENCET E)
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+function pressE()
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return false end
+
+    for _, v in pairs(game.Workspace:GetDescendants()) do
+        if v:IsA("ProximityPrompt") then
+            local dist = (character.HumanoidRootPart.Position - v.Parent.Position).Magnitude
+            if dist < 10 then
+                -- Simulasi tekan tombol E di keyboard
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                task.wait(0.2)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                
+                -- Backup: Tetap panggil fireprox agar 100% yakin
+                fireproximityprompt(v)
+                return true
+            end
+        end
+    end
+    return false
+end
+
+-- Update Dashboard & Inventory
 local function updateDashboard()
     local p = game.Players.LocalPlayer
     if not p or not p:FindFirstChild("Backpack") then return end
@@ -118,26 +143,6 @@ game:GetService("Players").LocalPlayer.Idled:Connect(function()
     game:GetService("VirtualUser"):ClickButton2(Vector2.new())
 end)
 
--- LOGIKA PENCET E (DIAMBIL DARI SCRIPT REXXYMAYOR YANG BISA)
-function pressE()
-    for _, v in pairs(game.Workspace:GetDescendants()) do
-        if v:IsA("ProximityPrompt") then
-            local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local dist = (hrp.Position - v.Parent.Position).Magnitude
-                if dist < 12 then -- Jarak sedikit diperjauh agar lebih peka
-                    v:InputHoldBegin()
-                    task.wait(0.2) -- Delay simulasi hold
-                    fireproximityprompt(v)
-                    v:InputHoldEnd()
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-
 -- Fungsi Equip
 function autoEquip(name)
     local p = game.Players.LocalPlayer
@@ -149,7 +154,7 @@ function autoEquip(name)
     for _, tool in pairs(bp:GetChildren()) do
         if string.find(string.lower(tool.Name), string.lower(name)) then
             char.Humanoid:EquipTool(tool)
-            task.wait(0.6) -- Kasih waktu karakter buat pegang item
+            task.wait(0.7)
             return true
         end
     end
@@ -163,13 +168,13 @@ ToggleBtn.MouseButton1Click:Connect(function()
     ToggleBtn.BackgroundColor3 = _G.AutoCook and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(0, 255, 150)
 end)
 
--- Main Loop (URUTAN RIGID)
+-- Loop Utama (Rigid Order)
 spawn(function()
     while true do
         task.wait(1)
         if _G.AutoCook then
-            -- 1. WATER & CD 20S
-            StatusLabel.Text = "Status: Adding Water..."
+            -- 1. WATER (CD 20S)
+            StatusLabel.Text = "Status: Mencoba Input Air..."
             if autoEquip("Water") then
                 task.wait(0.5)
                 if pressE() then
@@ -183,7 +188,7 @@ spawn(function()
             if not _G.AutoCook then continue end
 
             -- 2. SUGAR
-            StatusLabel.Text = "Status: Adding Sugar..."
+            StatusLabel.Text = "Status: Mencoba Input Gula..."
             if autoEquip("Sugar") then
                 task.wait(0.5)
                 pressE()
@@ -191,23 +196,23 @@ spawn(function()
             end
 
             -- 3. GELATIN
-            StatusLabel.Text = "Status: Adding Gelatin..."
+            StatusLabel.Text = "Status: Mencoba Input Gelatin..."
             if autoEquip("Gelatin") then
                 task.wait(0.5)
                 pressE()
                 task.wait(2)
             end
 
-            -- 4. COOKING 45S
+            -- 4. COOKING (CD 45S)
             for i = 45, 1, -1 do
                 if not _G.AutoCook then break end
-                StatusLabel.Text = "Status: Cooking ("..i.."s)"
+                StatusLabel.Text = "Status: Memasak ("..i.."s)"
                 task.wait(1)
             end
             if not _G.AutoCook then continue end
 
             -- 5. COLLECT
-            StatusLabel.Text = "Status: Collecting Result..."
+            StatusLabel.Text = "Status: Mengambil Hasil..."
             if autoEquip("Empty") then
                 task.wait(0.8)
                 pressE()
