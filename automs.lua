@@ -90,7 +90,7 @@ local function updateDashboard()
         elseif n:find("sugar") then s = s + 1
         elseif n:find("gelatin") then g = g + 1
         elseif n:find("marshmallow") then
-            if n:find("unfinish") or n:find("process") or n:find("raw") or n:find("cook") then
+            if n:find("unfinish") or n:find("process") or n:find("not") or n:find("raw") or n:find("cook") then
                 un = un + 1
             else
                 fi = fi + 1
@@ -108,11 +108,32 @@ end
 spawn(function()
     while true do
         updateDashboard()
-        task.wait(1)
+        task.wait(1.5)
     end
 end)
 
--- Interaction Logic
+-- Fungsi Pegang Tas Kosong
+local function equipEmptyBag()
+    local p = game.Players.LocalPlayer
+    local bag = p.Backpack:FindFirstChild("Empty Bag") or p.Backpack:FindFirstChild("Bag")
+    
+    -- Jika tidak ketemu nama "Empty Bag", cari yang namanya ada kata "Bag"
+    if not bag then
+        for _, v in pairs(p.Backpack:GetChildren()) do
+            if v.Name:lower():find("bag") and v.Name:lower():find("empty") then
+                bag = v
+                break
+            end
+        end
+    end
+    
+    if bag then
+        p.Character.Humanoid:EquipTool(bag)
+        return true
+    end
+    return false
+end
+
 _G.AutoCook = false
 function pressE()
     for _, v in pairs(game.Workspace:GetDescendants()) do
@@ -130,6 +151,7 @@ function pressE()
     return false
 end
 
+-- Button Setup
 ToggleBtn.Parent = MainFrame
 ToggleBtn.Position = UDim2.new(0.1, 0, 0.65, 0)
 ToggleBtn.Size = UDim2.new(0.8, 0, 0, 40)
@@ -154,7 +176,7 @@ StatusLabel.BackgroundTransparency = 1
 StatusLabel.Font = Enum.Font.Gotham
 StatusLabel.TextSize = 11
 
--- MAIN LOOP: Jeda 10 Detik Setelah Air
+-- MAIN LOOP
 spawn(function()
     while true do
         task.wait(0.5)
@@ -162,7 +184,6 @@ spawn(function()
             -- 1. Masukkan Air
             StatusLabel.Text = "System: Adding Water..."
             if pressE() then 
-                -- TUNGGU COOLDOWN 10 DETIK
                 for i = 10, 1, -1 do
                     if not _G.AutoCook then break end
                     StatusLabel.Text = "System: Water CD ("..i.."s)"
@@ -172,13 +193,13 @@ spawn(function()
             
             if not _G.AutoCook then continue end
             
-            -- 2. Mixing Bahan Lain
-            StatusLabel.Text = "System: Mixing Ingredients..."
-            pressE() task.wait(1.5)
+            -- 2. Mixing Bahan
+            StatusLabel.Text = "System: Mixing..."
+            pressE() task.wait(1)
             pressE()
             
             -- 3. Proses Masak
-            for i = 45, 1, -1 do
+            for i = 46, 1, -1 do
                 if not _G.AutoCook then break end
                 StatusLabel.Text = "System: Cooking ("..i.."s)"
                 task.wait(1)
@@ -186,10 +207,13 @@ spawn(function()
             
             if not _G.AutoCook then continue end
 
-            -- 4. Ambil Hasil
+            -- 4. AUTO-EQUIP BAG & COLLECT
+            StatusLabel.Text = "System: Equipping Bag..."
+            equipEmptyBag() -- Pegang tasnya dulu
+            task.wait(0.5)
             StatusLabel.Text = "System: Collecting MS..."
             pressE()
-            task.wait(1)
+            task.wait(0.5)
         else
             StatusLabel.Text = "System: Idle"
         end
