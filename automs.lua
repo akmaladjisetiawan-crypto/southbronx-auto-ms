@@ -1,4 +1,4 @@
--- [[ AUTOMS BY FLUU - INSTANT E VERSION ]]
+-- [[ AUTOMS BY FLUU - OPTIMIZED COOKING SPEED ]]
 local lp = game.Players.LocalPlayer
 local VIM = game:GetService("VirtualInputManager")
 
@@ -119,7 +119,7 @@ local function safeEquip(itemName)
     for _, t in pairs(b:GetChildren()) do
         if t:IsA("Tool") and string.find(t.Name:lower(), itemName:lower()) then
             c.Humanoid:EquipTool(t)
-            task.wait(0.05)
+            task.wait(0.2)
             return true
         end
     end
@@ -195,9 +195,9 @@ task.spawn(function()
                     if not _G.AutoCook then return false end
                     if safeEquip(itemName) then
                         Status.Text = "Status: " .. display
-                        -- INSTAN E: Tanpa wait lama setelah equip
+                        task.wait(0.1)
                         pressE_Global()
-                        task.wait(0.3) 
+                        task.wait(0.4)
                         return true
                     end
                     return false
@@ -225,8 +225,9 @@ task.spawn(function()
                 if _G.AutoCook then
                     if safeEquip("Empty") or safeEquip("Jar") then
                         Status.Text = "Status: Collecting..."
+                        task.wait(0.1)
                         pressE_Global()
-                        task.wait(1.5)
+                        task.wait(2)
                     end
                 end
             end)
